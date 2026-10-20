@@ -56,6 +56,8 @@ export type Team = {
   lineup: string[];
   /** 試合開始時の守備位置（lineup と同じ並び）。null は守備につかない打者 */
   positions: (Position | null)[];
+  /** DH制：打順に入らないピッチャー（守備位置が「なし」の打者が指名打者になる） */
+  pitcherId?: string;
 };
 
 /** 0 = 打者、1〜3 = その塁にいた走者 */

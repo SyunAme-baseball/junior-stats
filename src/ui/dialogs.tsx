@@ -27,7 +27,7 @@ const NEW = "__new__";
 type Choice = { id: string; newName: string };
 
 function benchOf(game: Game, state: GameState, side: Side): Player[] {
-  return game.teams[side].roster.filter((p) => !state.lineups[side].includes(p.id));
+  return game.teams[side].roster.filter((p) => !state.lineups[side].includes(p.id) && p.id !== state.dhPitcher[side]);
 }
 
 function PlayerPicker({
@@ -186,21 +186,28 @@ export function DefenseDialog({
   const [side, setSide] = useState<Side>(other(state.offense));
   const initial = (s: Side): SlotEdit[] => state.positions[s].map((position) => ({ position, replace: { id: "", newName: "" } }));
   const [slots, setSlots] = useState<SlotEdit[]>(() => initial(other(state.offense)));
+  // DH制で打順に入っていないピッチャーの交代
+  const [dhReplace, setDhReplace] = useState<Choice>({ id: "", newName: "" });
+  const dhPitcher = state.dhPitcher[side];
   const bench = benchOf(game, state, side);
   const lineup = state.lineups[side];
 
   const switchSide = (s: Side) => {
     setSide(s);
     setSlots(initial(s));
+    setDhReplace({ id: "", newName: "" });
   };
   const edit = (i: number, patch: Partial<SlotEdit>) => setSlots((xs) => xs.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
-  const problems = positionProblems(slots.map((s) => s.position));
+  const slotPositions = slots.map((s) => s.position);
+  // 打順の中にピッチャーがいなければ、打順に入っていないピッチャーが投げる
+  const keepsDh = !!dhPitcher && !slotPositions.includes(1);
+  const problems = positionProblems(keepsDh ? [...slotPositions, 1] : slotPositions);
   const blocking = problems.filter((p) => !p.startsWith("ピッチャーがいません"));
-  const usedBench = slots.map((s) => s.replace.id).filter((id) => id && id !== NEW);
+  const usedBench = [...slots.map((s) => s.replace.id), dhReplace.id].filter((id) => id && id !== NEW);
   const duplicateBench = new Set(usedBench).size !== usedBench.length;
-  const missingName = slots.some((s) => s.replace.id === NEW && !s.replace.newName.trim());
-  const changed = slots.some((s, i) => s.replace.id || s.position !== state.positions[side][i]);
+  const missingName = [...slots.map((s) => s.replace), dhReplace].some((c) => c.id === NEW && !c.newName.trim());
+  const changed = !!dhReplace.id || slots.some((s, i) => s.replace.id || s.position !== state.positions[side][i]);
 
   const save = () => {
     const newPlayers: Player[] = [];
@@ -214,6 +221,8 @@ export function DefenseDialog({
         moves.push({ id: newId(), type: "sub", side, kind: "position", inPlayerId: lineup[i], position: slot.position, createdAt: Date.now() });
       }
     });
+    const dhIn = keepsDh && dhPitcher ? resolve(dhReplace, newPlayers) : null;
+    if (dhIn && dhPitcher) subs.push({ id: newId(), type: "sub", side, kind: "defense", outPlayerId: dhPitcher, inPlayerId: dhIn, position: 1, createdAt: Date.now() });
     onSave([...subs, ...moves], side, newPlayers);
   };
 
@@ -236,7 +245,8 @@ export function DefenseDialog({
             <div className="runner-name">
               <span>{i + 1}番</span>
               <strong>{nameOf(id)}</strong>
-              {state.positions[side][i] === null && <span className="review-badge">守備位置なし</span>}
+              {state.positions[side][i] === null &&
+                (i === state.dhSlot[side] ? <span className="review-badge">指名打者</span> : <span className="review-badge">守備位置なし</span>)}
             </div>
             <div className="defense-grid">
               <label>
@@ -245,7 +255,7 @@ export function DefenseDialog({
                   value={slots[i]?.position ?? ""}
                   onChange={(e) => edit(i, { position: e.target.value ? (Number(e.target.value) as Position) : null })}
                 >
-                  <option value="">守備なし</option>
+                  <option value="">{i === state.dhSlot[side] ? "指" : "守備なし"}</option>
                   {POSITIONS.map((p) => (
                     <option key={p} value={p}>
                       {POSITION_SHORT[p]}
@@ -267,6 +277,21 @@ export function DefenseDialog({
             </div>
           </li>
         ))}
+        {keepsDh && dhPitcher && (
+          <li className="runner-row">
+            <div className="runner-name">
+              <span>投手</span>
+              <strong>{nameOf(dhPitcher)}</strong>
+              <span className="review-badge">打順に入らない</span>
+            </div>
+            <div className="defense-grid">
+              <label>
+                <span>交代</span>
+                <PlayerPicker bench={bench} value={dhReplace} onChange={setDhReplace} nameOf={nameOf} allowNone label="ピッチャーの交代" />
+              </label>
+            </div>
+          </li>
+        )}
       </ol>
       {problems.map((p) => (
         <p key={p} className={blocking.includes(p) ? "error" : "warning"}>

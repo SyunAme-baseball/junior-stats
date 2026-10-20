@@ -577,3 +577,49 @@ describe("ワンヒットワンエラー", () => {
     expect(s.stats[id].b2).toBe(0);
   });
 });
+
+describe("DH制（打順に入らないピッチャー）", () => {
+  const dhGame = () => {
+    const g = makeGame();
+    // 後攻：1番は指名打者、ピッチャー hp は打順に入らない
+    g.teams.home.roster.push({ id: "hp", name: "投手" }, { id: "hp2", name: "二番手" }, { id: "x", name: "代打" });
+    g.teams.home.positions = [null, 2, 3, 4, 5, 6, 7, 8, 9];
+    g.teams.home.pitcherId = "hp";
+    return g;
+  };
+
+  it("打順に入らないピッチャーに投手成績が付き、打者成績は付かない", () => {
+    let g = pa(dhGame(), "strikeout");
+    const s = replay(g);
+    expect(pitcherOf(s, "home")).toBe("hp");
+    expect(s.pitching.hp).toMatchObject({ bf: 1, so: 1 });
+    expect(s.stats.hp).toBeUndefined();
+    expect(s.dhSlot.home).toBe(0);
+    expect(s.positionHistory.hp).toEqual([1]);
+    g = pa(g, "walk");
+    expect(replay(g).pitching.hp.bb).toBe(1);
+  });
+
+  it("ピッチャー交代しても打順は変わらず、指名打者に代打を出しても指名打者のまま", () => {
+    let g = dhGame();
+    g = sub(g, { side: "home", kind: "defense", outPlayerId: "hp", inPlayerId: "hp2", position: 1 });
+    g = sub(g, { side: "home", kind: "pinch_hitter", outPlayerId: "h1", inPlayerId: "x" });
+    g = pa(g, "single");
+    const s = replay(g);
+    expect(pitcherOf(s, "home")).toBe("hp2");
+    expect(s.pitching.hp2.h).toBe(1);
+    expect(s.lineups.home).not.toContain("hp2");
+    expect(s.lineups.home[0]).toBe("x");
+    expect(s.dhSlot.home).toBe(0);
+  });
+
+  it("打順の選手がピッチャーになると、打順に入らないピッチャーは退く", () => {
+    let g = dhGame();
+    g = sub(g, { side: "home", kind: "position", inPlayerId: "h6", position: 1 });
+    g = pa(g, "walk");
+    const s = replay(g);
+    expect(pitcherOf(s, "home")).toBe("h6");
+    expect(s.dhPitcher.home).toBeNull();
+    expect(s.pitching.h6.bb).toBe(1);
+  });
+});

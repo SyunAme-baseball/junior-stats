@@ -8,12 +8,13 @@ import { POSITION_SHORT, POSITIONS, positionProblems } from "../domain/positions
 import type { Game, Player, Position, Side, Team, TeamProfile } from "../domain/types";
 
 /** その場で入力するチーム（相手チームなど） */
-type ManualRow = { name: string; position: Position | null };
-type ManualForm = { kind: "manual"; name: string; rows: ManualRow[]; bench: string };
+/** position が null の打者は指名打者（指）。bench の行は控え選手（打順に入らない）。dhPitcher は打順に入らないピッチャー */
+type ManualRow = { name: string; position: Position | null; bench?: boolean; dhPitcher?: boolean };
+type ManualForm = { kind: "manual"; name: string; rows: ManualRow[] };
 
 /** 登録チーム：打順は名簿から選び、背番号は試合ごとに入れる。控えは背番号を入れた選手だけが出場する */
 type ProfileRow = { playerId: string; number: string; position: Position | null };
-type ProfileForm = { kind: "profile"; teamId: string; rows: ProfileRow[]; benchNumbers: Record<string, string> };
+type ProfileForm = { kind: "profile"; teamId: string; rows: ProfileRow[]; benchNumbers: Record<string, string>; pitcherId?: string };
 
 type TeamForm = ManualForm | ProfileForm;
 
@@ -23,14 +24,15 @@ const SAMPLE: Record<Side, ManualForm> = {
   away: {
     kind: "manual",
     name: "さいたまフェニックス",
-    rows: ["山田", "佐藤", "鈴木", "田中", "高橋", "伊藤", "渡辺", "中村", "小林"].map((name, i) => ({ name, position: SAMPLE_POSITIONS[i] })),
-    bench: "加藤\n吉田",
+    rows: [
+      ...["山田", "佐藤", "鈴木", "田中", "高橋", "伊藤", "渡辺", "中村", "小林"].map((name, i) => ({ name, position: SAMPLE_POSITIONS[i] })),
+      ...["加藤", "吉田"].map((name) => ({ name, position: null, bench: true })),
+    ],
   },
   home: {
     kind: "manual",
     name: "○○ジュニア",
     rows: Array.from({ length: 9 }, (_, i) => ({ name: `選手${i + 1}`, position: SAMPLE_POSITIONS[i] })),
-    bench: "",
   },
 };
 
@@ -51,14 +53,15 @@ function profileForm(t: TeamProfile, category: string, includeLower: boolean): P
   return { kind: "profile", teamId: t.id, rows, benchNumbers };
 }
 
-const lines = (text: string) =>
-  text
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
 function startersOf(form: TeamForm) {
-  return form.kind === "profile" ? form.rows.filter((r) => r.playerId) : form.rows.filter((r) => r.name.trim());
+  return form.kind === "profile" ? form.rows.filter((r) => r.playerId) : form.rows.filter((r) => !r.bench && r.name.trim());
+}
+
+/** 打順に入らないピッチャー（DH制）。打順の中にピッチャーがいるときは使わない */
+function dhPitcherOf(form: TeamForm): string | null {
+  if (startersOf(form).some((r) => r.position === 1)) return null;
+  if (form.kind === "profile") return form.pitcherId || null;
+  return form.rows.find((r) => r.bench && r.dhPitcher && r.name.trim())?.name.trim() ?? null;
 }
 
 function toTeam(form: TeamForm, profiles: TeamProfile[]): Team {
@@ -68,14 +71,30 @@ function toTeam(form: TeamForm, profiles: TeamProfile[]): Team {
     const rows = startersOf(form) as ProfileRow[];
     const starters: Player[] = rows.map((r) => ({ id: r.playerId, name: byId.get(r.playerId)?.name ?? "", number: r.number.trim() || undefined }));
     const bench: Player[] = Object.entries(form.benchNumbers)
-      .filter(([id, n]) => n.trim() && !rows.some((r) => r.playerId === id) && byId.has(id))
-      .map(([id, n]) => ({ id, name: byId.get(id)!.name, number: n.trim() }));
-    return { id: profile.id, name: profile.name, roster: [...starters, ...bench], lineup: rows.map((r) => r.playerId), positions: rows.map((r) => r.position) };
+      .filter(([id, n]) => (n.trim() || id === dhPitcherOf(form)) && !rows.some((r) => r.playerId === id) && byId.has(id))
+      .map(([id, n]) => ({ id, name: byId.get(id)!.name, number: n.trim() || undefined }));
+    return {
+      id: profile.id,
+      name: profile.name,
+      roster: [...starters, ...bench],
+      lineup: rows.map((r) => r.playerId),
+      positions: rows.map((r) => r.position),
+      pitcherId: dhPitcherOf(form) ?? undefined,
+    };
   }
   const rows = startersOf(form) as ManualRow[];
   const starters = rows.map((r) => ({ id: newId(), name: r.name.trim() }));
-  const bench = lines(form.bench).map((name) => ({ id: newId(), name }));
-  return { id: newId(), name: form.name.trim(), roster: [...starters, ...bench], lineup: starters.map((p) => p.id), positions: rows.map((r) => r.position) };
+  const benchRows = form.rows.filter((r) => r.bench && r.name.trim());
+  const bench = benchRows.map((r) => ({ id: newId(), name: r.name.trim() }));
+  const dh = dhPitcherOf(form) ? bench[benchRows.findIndex((r) => r.dhPitcher)] : undefined;
+  return {
+    id: newId(),
+    name: form.name.trim(),
+    roster: [...starters, ...bench],
+    lineup: starters.map((p) => p.id),
+    positions: rows.map((r) => r.position),
+    pitcherId: dh?.id,
+  };
 }
 
 type Props = {
@@ -132,9 +151,11 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
     if (form.kind === "manual" && !form.name.trim()) problems.push(`${label}チームの名前を入力してください`);
     const rows = startersOf(form);
     if (rows.length === 0) problems.push(`${label}チームの選手を1人以上入れてください`);
-    for (const p of positionProblems(rows.map((r) => r.position))) {
+    const positions = rows.map((r) => r.position);
+    for (const p of positionProblems(dhPitcherOf(form) ? [...positions, 1] : positions)) {
       (p.startsWith("ピッチャーがいません") ? warnings : problems).push(p);
     }
+    if (dhPitcherOf(form) && positions.filter((x) => x === null).length > 1) warnings.push("「指」の打者が2人以上います");
     if (form.kind === "profile") {
       const ids = form.rows.map((r) => r.playerId).filter(Boolean);
       if (new Set(ids).size !== ids.length) problems.push("同じ選手が打順に2回入っています");
@@ -304,17 +325,54 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
   );
 }
 
-/** 守備位置の選択。番号は出さず「投」「遊」「左」のような1文字で表示する */
-function PositionSelect({ value, onChange, label, short }: { value: Position | null; onChange: (p: Position | null) => void; label: string; short?: boolean }) {
+/** 守備位置の選択。番号は出さず「投」「遊」「左」のような1文字で表示する。「指」は守備につかない打者（指名打者）、「控」は控え選手 */
+function PositionSelect({
+  value,
+  onChange,
+  label,
+  onBench,
+}: {
+  value: Position | null;
+  onChange: (p: Position | null) => void;
+  label: string;
+  onBench?: () => void;
+}) {
   return (
-    <select className="position-select" value={value ?? ""} onChange={(e) => onChange(e.target.value ? (Number(e.target.value) as Position) : null)} aria-label={label}>
-      <option value="">{short ? "なし" : "守備なし"}</option>
+    <select
+      className="position-select"
+      value={value ?? ""}
+      onChange={(e) => {
+        if (e.target.value === "bench") return onBench?.();
+        onChange(e.target.value ? (Number(e.target.value) as Position) : null);
+      }}
+      aria-label={label}
+    >
       {POSITIONS.map((p) => (
         <option key={p} value={p}>
           {POSITION_SHORT[p]}
         </option>
       ))}
+      <option value="">指</option>
+      {onBench && <option value="bench">控</option>}
     </select>
+  );
+}
+
+/** DH制で打順に入らないピッチャーを選ぶ（打順にピッチャーがいないときだけ出す） */
+function DhPitcherSelect({ options, value, onChange }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="field dh-pitcher">
+      ピッチャー（DH制：打順に入らない）
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">選ばない</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {options.length === 0 && <span className="muted small">控え選手を追加すると、ここで選べます。</span>}
+    </label>
   );
 }
 
@@ -378,7 +436,7 @@ function ProfileLineup({
                 inputMode="numeric"
                 aria-label={`${i + 1}番の背番号`}
               />
-              <PositionSelect short value={r.position} onChange={(position) => editRow(i, { position })} label={`${i + 1}番の守備位置`} />
+              <PositionSelect value={r.position} onChange={(position) => editRow(i, { position })} label={`${i + 1}番の守備位置`} />
               <button
                 className="icon-button"
                 aria-label={`${i + 1}番を削除`}
@@ -396,6 +454,13 @@ function ProfileLineup({
           ＋ 打者を追加
         </button>
       </div>
+      {!form.rows.some((r) => r.playerId && r.position === 1) && (
+        <DhPitcherSelect
+          options={bench.map((p) => ({ value: p.id, label: p.name }))}
+          value={form.pitcherId && bench.some((p) => p.id === form.pitcherId) ? form.pitcherId : ""}
+          onChange={(v) => onChange({ ...form, pitcherId: v || undefined })}
+        />
+      )}
 
       <div className="field">
         控え選手（背番号を入れた選手が、この試合の控えになります）
@@ -445,6 +510,15 @@ function OrderHandle({ index, ...handlers }: { index: number } & ReturnType<Retu
 function ManualLineup({ form, onChange }: { form: ManualForm; onChange: (f: ManualForm) => void }) {
   const drag = useDragReorder<HTMLOListElement>((from, to) => onChange({ ...form, rows: moveItem(form.rows, from, to) }));
   const editRow = (i: number, patch: Partial<ManualRow>) => onChange({ ...form, rows: form.rows.map((r, j) => (j === i ? { ...r, ...patch } : r)) });
+  // 控えにした選手は打順の下にまとめる
+  const toBench = (i: number) => {
+    const row = { ...form.rows[i], position: null, bench: true };
+    onChange({ ...form, rows: [...form.rows.filter((_, j) => j !== i), row] });
+  };
+  const batters = form.rows.filter((r) => !r.bench);
+  const benchRows = form.rows.map((r, i) => ({ r, i })).filter(({ r }) => r.bench && r.name.trim());
+  const dhIndex = form.rows.findIndex((r) => r.bench && r.dhPitcher);
+  let order = 0;
   return (
     <>
       <label className="field">
@@ -453,27 +527,73 @@ function ManualLineup({ form, onChange }: { form: ManualForm; onChange: (f: Manu
       </label>
       <div className="field">
         打順と守備位置
-        <span className="muted small">打順を変えるときは、番号の「⋮⋮」を指で押したまま上下に動かします。</span>
+        <span className="muted small">打順を変えるときは、番号の「⋮⋮」を指で押したまま上下に動かします。守備で「指」は指名打者、「控」は控え選手です。</span>
         <ol className="lineup-rows" ref={drag.listRef}>
-          {form.rows.map((r, i) => (
-            <li key={i} className={drag.dragging === i ? "dragging" : undefined}>
-              <OrderHandle index={i} {...drag.handleProps(i)} />
-              <input value={r.name} onChange={(e) => editRow(i, { name: e.target.value })} placeholder="名前" aria-label={`${i + 1}番の名前`} />
-              <PositionSelect value={r.position} onChange={(position) => editRow(i, { position })} label={`${i + 1}番の守備位置`} />
-              <button className="icon-button" aria-label={`${i + 1}番を削除`} onClick={() => onChange({ ...form, rows: form.rows.filter((_, j) => j !== i) })}>
-                ✕
-              </button>
-            </li>
-          ))}
+          {form.rows.map((r, i) => {
+            const label = r.bench ? null : ++order;
+            return (
+              <li key={i} className={[drag.dragging === i ? "dragging" : "", r.bench ? "bench-row" : ""].join(" ").trim() || undefined}>
+                {label === null ? (
+                  <span className="order bench-label">控</span>
+                ) : (
+                  <OrderHandle index={label - 1} {...drag.handleProps(i)} />
+                )}
+                <input
+                  value={r.name}
+                  onChange={(e) => editRow(i, { name: e.target.value })}
+                  placeholder={r.bench ? "控え選手の名前" : "名前"}
+                  aria-label={r.bench ? `控え選手の名前` : `${label}番の名前`}
+                />
+                {r.bench ? (
+                  <select
+                    className="position-select"
+                    value="bench"
+                    onChange={(e) => {
+                      // 控えから打順に入れる：打順の最後に入れる
+                      const v = e.target.value;
+                      const row: ManualRow = { name: r.name, position: v ? (Number(v) as Position) : null };
+                      const rest = form.rows.filter((_, j) => j !== i);
+                      onChange({ ...form, rows: [...rest.filter((x) => !x.bench), row, ...rest.filter((x) => x.bench)] });
+                    }}
+                    aria-label="控え選手の守備位置"
+                  >
+                    {POSITIONS.map((p) => (
+                      <option key={p} value={p}>
+                        {POSITION_SHORT[p]}
+                      </option>
+                    ))}
+                    <option value="">指</option>
+                    <option value="bench">控</option>
+                  </select>
+                ) : (
+                  <PositionSelect value={r.position} onChange={(position) => editRow(i, { position })} onBench={() => toBench(i)} label={`${label}番の守備位置`} />
+                )}
+                <button
+                  className="icon-button"
+                  aria-label={r.bench ? `控え選手${r.name}を削除` : `${label}番を削除`}
+                  onClick={() => onChange({ ...form, rows: form.rows.filter((_, j) => j !== i) })}
+                >
+                  ✕
+                </button>
+              </li>
+            );
+          })}
         </ol>
-        <button className="secondary-button" onClick={() => onChange({ ...form, rows: [...form.rows, { name: "", position: null }] })}>
-          ＋ 打者を追加
+        <button
+          className="secondary-button"
+          onClick={() => onChange({ ...form, rows: [...batters, { name: "", position: null }, ...form.rows.filter((r) => r.bench)] })}
+        >
+          ＋ 打者・控え選手を追加
         </button>
+        <span className="muted small">控え選手は、追加した行の守備で「控」を選びます。</span>
       </div>
-      <label className="field">
-        控え選手（1行に1人・任意）
-        <textarea rows={3} value={form.bench} onChange={(e) => onChange({ ...form, bench: e.target.value })} placeholder="途中から出る選手" />
-      </label>
+      {!batters.some((r) => r.name.trim() && r.position === 1) && (
+        <DhPitcherSelect
+          options={benchRows.map(({ r, i }) => ({ value: String(i), label: r.name.trim() }))}
+          value={dhIndex >= 0 && form.rows[dhIndex].name.trim() ? String(dhIndex) : ""}
+          onChange={(v) => onChange({ ...form, rows: form.rows.map((r, j) => ({ ...r, dhPitcher: r.bench && String(j) === v })) })}
+        />
+      )}
     </>
   );
 }

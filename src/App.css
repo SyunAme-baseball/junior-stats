@@ -2768,3 +2768,8 @@ button.roster-name {
   text-align: center;
   font-weight: 700;
 }
+
+/* 控え選手の行（その場で入力するチーム） */
+.lineup-rows li.bench-row { background: #f3f6f2; border-radius: 10px; }
+.lineup-rows .order.bench-label { display: grid; place-items: center; color: #5b6b5e; font-weight: 700; font-size: 0.85rem; }
+.dh-pitcher select { width: 100%; }

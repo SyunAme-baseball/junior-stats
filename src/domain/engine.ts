@@ -92,6 +92,10 @@ export type GameState = {
   lineups: Record<Side, string[]>;
   /** 打順の枠ごとの今の守備位置（lineups と同じ並び） */
   positions: Record<Side, (Position | null)[]>;
+  /** DH制で打順に入っていないピッチャー（いなければ null） */
+  dhPitcher: Record<Side, string | null>;
+  /** 指名打者の打順の枠（0始まり）。代打が出てもその枠は指名打者のまま */
+  dhSlot: Record<Side, number | null>;
   battingIndex: Record<Side, number>;
   currentBatterId: string | null;
   nextBatterId: string | null;
@@ -119,9 +123,15 @@ export type GameState = {
 export const offenseOf = (half: Half): Side => (half === "top" ? "away" : "home");
 export const other = (side: Side): Side => (side === "away" ? "home" : "away");
 
-export function pitcherOf(s: Pick<GameState, "lineups" | "positions">, side: Side): string | null {
+export function pitcherOf(s: Pick<GameState, "lineups" | "positions" | "dhPitcher">, side: Side): string | null {
   const i = s.positions[side].indexOf(1);
-  return i >= 0 ? s.lineups[side][i] : null;
+  return i >= 0 ? s.lineups[side][i] : (s.dhPitcher?.[side] ?? null);
+}
+
+function dhSlotOf(team: Game["teams"]["away"]): number | null {
+  if (!team.pitcherId) return null;
+  const i = team.lineup.findIndex((_, j) => (team.positions?.[j] ?? null) === null);
+  return i >= 0 ? i : null;
 }
 
 export function inningsPitched(outs: number): string {
@@ -193,6 +203,8 @@ export function replay(game: Game): GameState {
       away: game.teams.away.lineup.map((_, i) => game.teams.away.positions?.[i] ?? null),
       home: game.teams.home.lineup.map((_, i) => game.teams.home.positions?.[i] ?? null),
     },
+    dhPitcher: { away: game.teams.away.pitcherId ?? null, home: game.teams.home.pitcherId ?? null },
+    dhSlot: { away: dhSlotOf(game.teams.away), home: dhSlotOf(game.teams.home) },
     battingIndex: { away: 0, home: 0 },
     currentBatterId: null,
     nextBatterId: null,
@@ -228,7 +240,11 @@ export function replay(game: Game): GameState {
     const h = (s.positionHistory[id] ??= []);
     if (h[h.length - 1] !== pos) h.push(pos);
   };
-  for (const side of ["away", "home"] as const) s.lineups[side].forEach((id, i) => assignPos(id, s.positions[side][i]));
+  for (const side of ["away", "home"] as const) {
+    s.lineups[side].forEach((id, i) => assignPos(id, s.positions[side][i]));
+    const dh = s.dhPitcher[side];
+    if (dh) assignPos(dh, 1);
+  }
 
   const pitch = (id: string, side: Side): PitcherStats => {
     if (!s.pitching[id]) {
@@ -317,10 +333,23 @@ export function replay(game: Game): GameState {
     if (play.type === "sub") {
       const lineup = s.lineups[play.side];
       const positions = s.positions[play.side];
+      // DH制で打順に入っていないピッチャーの交代
+      if (play.outPlayerId && play.outPlayerId === s.dhPitcher[play.side] && !lineup.includes(play.outPlayerId)) {
+        s.dhPitcher[play.side] = play.inPlayerId;
+        assignPos(play.inPlayerId, 1);
+        sideOfPlayer.set(play.inPlayerId, play.side);
+        return;
+      }
+      // 打順の中の選手がピッチャーになったら、打順に入っていないピッチャーは退く
+      if (play.position === 1) {
+        s.dhPitcher[play.side] = null;
+        s.dhSlot[play.side] = null;
+      }
       if (play.kind === "position") {
         const i = lineup.indexOf(play.inPlayerId);
         if (i >= 0) {
           positions[i] = play.position ?? null;
+          if (i === s.dhSlot[play.side] && positions[i] !== null) s.dhSlot[play.side] = null;
           assignPos(play.inPlayerId, positions[i]);
         }
         else outcome.warnings.push("守備位置を変える選手が打順にいません");
@@ -332,6 +361,7 @@ export function replay(game: Game): GameState {
         // 代打・代走はまだ守備位置が決まっていない（守備につくときに守備交代で設定する）
         if (play.position !== undefined) positions[i] = play.position;
         else if (play.kind !== "defense") positions[i] = null;
+        if (i === s.dhSlot[play.side] && positions[i] !== null) s.dhSlot[play.side] = null;
         assignPos(play.inPlayerId, positions[i]);
       } else outcome.warnings.push("交代する選手が打順にいません");
       if (play.kind === "pinch_runner" && play.base) {

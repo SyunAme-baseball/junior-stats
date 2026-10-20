@@ -82,7 +82,8 @@ export function GameScreen({ game, onChange, onShowResult, onBack, earlierPitche
   };
 
   const defense = other(state.offense);
-  const unassigned = state.lineups[defense].filter((_, i) => state.positions[defense][i] === null);
+  // 指名打者の枠は守備につかなくてよい
+  const unassigned = state.lineups[defense].filter((_, i) => state.positions[defense][i] === null && i !== state.dhSlot[defense]);
   const noPitcher = !pitcherOf(state, defense);
 
   const undo = () => setPlays(game.plays.slice(0, -1));
@@ -269,10 +270,17 @@ export function GameScreen({ game, onChange, onShowResult, onBack, earlierPitche
                     <li key={id} className={!state.finished && side === state.offense && id === state.currentBatterId ? "now" : ""}>
                       <span className="order">{i + 1}</span>
                       <span className="pname">{nameOf(id)}</span>
-                      <span className={pos ? "pos" : "pos none"}>{pos ? POSITION_SHORT[pos] : "守備なし"}</span>
+                      <span className={pos ? "pos" : "pos none"}>{pos ? POSITION_SHORT[pos] : i === state.dhSlot[side] ? "指" : "守備なし"}</span>
                     </li>
                   );
                 })}
+                {state.dhPitcher[side] && (
+                  <li>
+                    <span className="order">－</span>
+                    <span className="pname">{nameOf(state.dhPitcher[side])}</span>
+                    <span className="pos">投</span>
+                  </li>
+                )}
               </ol>
             </div>
           ))}

@@ -89,7 +89,7 @@ export function remapTeam(game: Game, fromTeamId: string, target: TeamProfile): 
       category: game.category,
       teams: {
         ...game.teams,
-        [side]: { ...team, id: target.id, name: target.name, roster, lineup: team.lineup.map((id) => m(id)!) },
+        [side]: { ...team, id: target.id, name: target.name, roster, lineup: team.lineup.map((id) => m(id)!), pitcherId: m(team.pitcherId) },
       },
       plays,
       pitcherDecisions: pd ? { win: m(pd.win), loss: m(pd.loss) } : undefined,
