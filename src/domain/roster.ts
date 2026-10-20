@@ -43,7 +43,8 @@ export function syncTeam(team: TeamProfile, roster: Player[]): TeamProfile {
 /** チームの選手のうち名簿にいない人を名簿に加える（旧データの移行・取り込み・試合中の追加） */
 export function mergeIntoRoster(roster: Player[], players: Player[]): Player[] {
   const ids = new Set(roster.map((p) => p.id));
-  const added = players.filter((p) => !ids.has(p.id) && p.name.trim()).map(({ id, name, grade, left }) => ({ id, name, grade, ...(left ? { left } : {}) }));
+  // 他チームの選手（合同チーム）は名簿に入れない
+  const added = players.filter((p) => !p.guest && !ids.has(p.id) && p.name.trim()).map(({ id, name, grade, left }) => ({ id, name, grade, ...(left ? { left } : {}) }));
   return added.length ? [...roster, ...added] : roster;
 }
 
@@ -51,3 +52,6 @@ export function mergeIntoRoster(roster: Player[], players: Player[]): Player[] {
 export function promoteRoster(roster: Player[]): Player[] {
   return roster.map((p) => (p.left || p.grade === undefined || p.grade >= GRADUATED ? p : { ...p, grade: p.grade + 1 }));
 }
+
+/** 選手名の表示。他チームの選手は所属チームを添える（例：佐々木（みどりジュニア）） */
+export const playerLabel = (p: Player) => (p.guest && p.fromTeam ? `${p.name}（${p.fromTeam}）` : p.name);

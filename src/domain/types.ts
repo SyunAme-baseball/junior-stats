@@ -13,6 +13,10 @@ export type Player = {
   grade?: number;
   /** 退団した選手。名簿やチームの選手選びには出さないが、過去の成績のために残す */
   left?: boolean;
+  /** 合同チームで加わった他チームの選手。名簿には入れず、そのチームだけで使う */
+  guest?: boolean;
+  /** 他チームの選手の所属チーム名（例：みどりジュニア） */
+  fromTeam?: string;
 };
 
 export type LineupSlot = { playerId: string; position: Position | null };

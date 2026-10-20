@@ -2685,3 +2685,21 @@ button.roster-name {
   font-size: 12px;
   text-align: center;
 }
+
+/* 合同チーム：他チームの選手 */
+.guest-section {
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.guest-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 8px;
+}
+
+.guest-add input,
+.guest-add select {
+  min-height: 44px;
+}
+

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { categoryForGrade, isActive, mergeIntoRoster, promoteRoster, syncTeam, teamCandidates } from "./roster";
+import { eligiblePlayers } from "./categories";
 import type { Player, TeamProfile } from "./types";
 
 const roster: Player[] = [
@@ -37,6 +38,16 @@ describe("名簿", () => {
     const merged = mergeIntoRoster(roster, [{ id: "a", name: "山田", grade: 6 }, { id: "z", name: "新人", grade: 2, number: "10" }]);
     expect(merged).toHaveLength(roster.length + 1);
     expect(merged.at(-1)).toEqual({ id: "z", name: "新人", grade: 2 });
+  });
+
+  it("合同チームの他チームの選手は名簿に入れない", () => {
+    const merged = mergeIntoRoster(roster, [{ id: "g", name: "佐々木", guest: true, fromTeam: "みどりジュニア" }]);
+    expect(merged).toBe(roster);
+  });
+
+  it("他チームの選手は学年に関係なく試合で選べる", () => {
+    const players: Player[] = [{ id: "g", name: "佐々木", guest: true, grade: 5 }, { id: "b", name: "佐藤", grade: 5 }];
+    expect(eligiblePlayers(players, "4年生").map((p) => p.id)).toEqual(["g"]);
   });
 
   it("チームの学年から試合のカテゴリーを決める", () => {

@@ -349,7 +349,7 @@ function ProfileLineup({
                   .filter((p) => p.id === r.playerId || !used.has(p.id))
                   .map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}（{gradeLabel(p.grade)}）
+                      {p.guest ? `${p.name}（他チーム${p.fromTeam ? `・${p.fromTeam}` : ""}）` : `${p.name}（${gradeLabel(p.grade)}）`}
                     </option>
                   ))}
               </select>
@@ -392,7 +392,7 @@ function ProfileLineup({
                 <li key={p.id} className={n.trim() ? "" : "off"}>
                   <span>
                     {p.name}
-                    <small>{gradeLabel(p.grade)}</small>
+                    <small>{p.guest ? `他チーム${p.fromTeam ? `・${p.fromTeam}` : ""}` : gradeLabel(p.grade)}</small>
                   </span>
                   <input
                     className="number-input"

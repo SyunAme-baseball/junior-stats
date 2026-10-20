@@ -58,17 +58,34 @@ export function TeamMembers({ roster, team, onSave, onCancel, onOpenRoster }: Pr
       return n;
     });
 
-  const count = list.filter((p) => selected.has(p.id)).length;
+  // 合同チームで加わる他チームの選手（名簿には入れない）
+  const [guests, setGuests] = useState<Player[]>(() => (team?.players ?? []).filter((p) => p.guest && !p.left));
+  const [guestName, setGuestName] = useState("");
+  const [guestFrom, setGuestFrom] = useState(() => guests[guests.length - 1]?.fromTeam ?? "");
+  const [guestGrade, setGuestGrade] = useState<number | "">("");
+  const addGuest = () => {
+    const n = guestName.trim();
+    if (!n) return;
+    setGuests((gs) => [
+      ...gs,
+      { id: newId(), name: n, guest: true, ...(guestFrom.trim() ? { fromTeam: guestFrom.trim() } : {}), ...(guestGrade ? { grade: guestGrade } : {}) },
+    ]);
+    setGuestName("");
+  };
+
+  const count = list.filter((p) => selected.has(p.id)).length + guests.length;
 
   const save = () => {
     const chosen = list.filter((p) => selected.has(p.id));
     // 卒団・退団した元メンバーは、過去の成績のためにチームに残しておく
-    const former = (team?.players ?? []).filter((p) => !isActive(p));
+    // 外した他チームの選手も、試合に出ていれば成績の名前のために残す（退団扱い）
+    const removedGuests = (team?.players ?? []).filter((p) => p.guest && !p.left && !guests.some((g) => g.id === p.id)).map((p) => ({ ...p, left: true }));
+    const former = [...(team?.players ?? []).filter((p) => !isActive(p) && !(p.guest && !p.left)), ...removedGuests];
     onSave({
       ...(team ?? { id: newId(), createdAt: Date.now() }),
       name: name.trim(),
       maxGrade,
-      players: [...chosen, ...former],
+      players: [...chosen, ...guests, ...former],
       updatedAt: Date.now(),
     } as TeamProfile);
   };
@@ -104,7 +121,7 @@ export function TeamMembers({ roster, team, onSave, onCancel, onOpenRoster }: Pr
         <div className="field">
           <div className="member-head">
             <span>
-              選手（{count}人を選択中）
+              選手（{count - guests.length}人を選択中{guests.length ? `＋他チーム${guests.length}人` : ""}）
             </span>
             <span className="member-quick">
               <button className="link-button" onClick={() => setMany(list.map((p) => p.id), true)}>
@@ -143,6 +160,52 @@ export function TeamMembers({ roster, team, onSave, onCancel, onOpenRoster }: Pr
           </p>
         </div>
       )}
+
+      <div className="field guest-section">
+        他チームの選手（合同チーム）
+        <span className="muted small">名簿には入れず、このチームだけで使います。合同チームで一緒に出る選手を入れてください。</span>
+        {guests.length > 0 && (
+          <ul className="roster-list">
+            {guests.map((g) => (
+              <li key={g.id}>
+                <span className="roster-name">
+                  {g.name}
+                  <small>
+                    {g.fromTeam ?? "所属未入力"}
+                    {g.grade ? `・${g.grade}年` : ""}
+                  </small>
+                </span>
+                <button className="link-button danger" onClick={() => setGuests((gs) => gs.filter((x) => x.id !== g.id))}>
+                  外す
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="guest-add">
+          <input
+            value={guestName}
+            onChange={(e) => setGuestName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) addGuest();
+            }}
+            placeholder="名前"
+            aria-label="他チームの選手の名前"
+          />
+          <input value={guestFrom} onChange={(e) => setGuestFrom(e.target.value)} placeholder="所属チーム（例：みどりジュニア）" aria-label="他チームの選手の所属チーム" />
+          <select value={guestGrade} onChange={(e) => setGuestGrade(e.target.value ? Number(e.target.value) : "")} aria-label="他チームの選手の学年">
+            <option value="">学年（任意）</option>
+            {[...GRADES].reverse().map((g) => (
+              <option key={g} value={g}>
+                {g}年生
+              </option>
+            ))}
+          </select>
+          <button className="secondary-button" disabled={!guestName.trim()} onClick={addGuest}>
+            ＋ 追加
+          </button>
+        </div>
+      </div>
 
       <div className="stack">
         <button className="primary-button" disabled={!name.trim() || count === 0} onClick={save}>

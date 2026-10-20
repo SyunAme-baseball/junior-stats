@@ -28,7 +28,8 @@ export function eligiblePlayers(players: Player[], categoryId: string, includeLo
   const max = Math.max(...cat.grades);
   return players.filter((p) => {
     if (p.left) return false;
-    if (p.grade === undefined) return true;
+    // 合同チームの他チームの選手は、学年に関係なく選べるようにする
+    if (p.guest || p.grade === undefined) return true;
     if (p.grade >= GRADUATED) return false;
     return cat.grades.includes(p.grade) || (includeLower && p.grade < max);
   });

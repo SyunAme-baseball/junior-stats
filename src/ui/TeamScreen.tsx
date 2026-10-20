@@ -4,7 +4,7 @@ import { fmtKbb, fmtPct, fmtRatio, strikeRate, whip } from "../domain/pitchingMe
 import { battingAverage, inningsPitched } from "../domain/engine";
 import { filtersOf, summarizeSeason, winningPct } from "../domain/season";
 import type { Game, Player, TeamProfile } from "../domain/types";
-import { isActive, teamGradeLabel } from "../domain/roster";
+import { isActive, playerLabel, teamGradeLabel } from "../domain/roster";
 import { ask } from "./confirm";
 import { PitchingCharts } from "./PitchingCharts";
 import { TeamMembers } from "./TeamMembers";
@@ -37,7 +37,7 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
   );
   const byGrade = useMemo(() => {
     const groups = new Map<number | undefined, Player[]>();
-    for (const p of members) groups.set(p.grade, [...(groups.get(p.grade) ?? []), p]);
+    for (const p of members.filter((m) => !m.guest)) groups.set(p.grade, [...(groups.get(p.grade) ?? []), p]);
     return [...groups.entries()].sort(([a], [b]) => (b ?? 0) - (a ?? 0));
   }, [members]);
 
@@ -137,6 +137,18 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
               </p>
             </div>
           ))}
+          {members.some((m) => m.guest) && (
+            <div className="grade-group">
+              <h3>他チームの選手（合同）</h3>
+              <p className="player-chips">
+                {members
+                  .filter((m) => m.guest)
+                  .map((p) => (
+                    <span key={p.id}>{playerLabel(p)}</span>
+                  ))}
+              </p>
+            </div>
+          )}
         </section>
       )}
 
