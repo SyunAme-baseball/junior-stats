@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><clipPath id="bc"><circle cx="180" cy="200" r="84"/></clipPath><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#24365e"/><stop offset="1" stop-color="#18264a"/></linearGradient></defs>
+<rect width="512" height="512" rx="112" fill="#0f1726"/>
+<rect x="52" y="52" width="408" height="408" rx="44" fill="url(#sg)" stroke="#fff" stroke-width="14"/>
+<circle cx="180" cy="200" r="84" fill="#fff"/><g clip-path="url(#bc)" fill="none" stroke="#e8463a" stroke-linecap="round" stroke-linejoin="round"><g stroke-width="7.0"><path d="M128.0 130.0 Q170.0 200.0 128.0 270.0"/><path d="M232.0 130.0 Q190.0 200.0 232.0 270.0"/></g><g stroke-width="5.0"><path d="M123.5 146.3 L139.4 152.3 L145.3 136.4"/><path d="M132.6 169.0 L147.0 177.8 L155.9 163.4"/><path d="M137.0 194.0 L149.0 206.0 L161.0 194.0"/><path d="M135.4 219.4 L144.2 233.8 L158.7 225.0"/><path d="M128.4 242.8 L134.4 258.7 L150.3 252.7"/><path d="M214.7 136.4 L220.6 152.3 L236.5 146.3"/><path d="M204.1 163.4 L213.0 177.8 L227.4 169.0"/><path d="M199.0 194.0 L211.0 206.0 L223.0 194.0"/><path d="M201.3 225.0 L215.8 233.8 L224.6 219.4"/><path d="M209.7 252.7 L225.6 258.7 L231.6 242.8"/></g></g>
+<polygon points="350.0,132.0 366.5,173.3 410.9,176.2 376.6,204.7 387.6,247.8 350.0,224.0 312.4,247.8 323.4,204.7 289.1,176.2 333.5,173.3" fill="#f5d76e" stroke="#f5d76e" stroke-width="14" stroke-linejoin="round"/>
+<rect x="104" y="318" width="304" height="30" rx="15" fill="#2c3e66"/><rect x="104" y="318" width="262" height="30" rx="15" fill="#3fbf6a"/>
+<rect x="104" y="374" width="304" height="30" rx="15" fill="#2c3e66"/><rect x="104" y="374" width="168" height="30" rx="15" fill="#ff8a2b"/>
+</svg>

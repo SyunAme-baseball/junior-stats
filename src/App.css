@@ -1,0 +1,2680 @@
+:root {
+  --ink: #17251f;
+  --muted: #68766e;
+  --bg: #f2f5f2;
+  --panel: #ffffff;
+  --line: #e3e9e4;
+  --green: #217748;
+  --green-dark: #183c2b;
+  --green-soft: #e8f5eb;
+  --gold: #f5c542;
+  --warn-bg: #fff7e0;
+  --warn: #8a5a00;
+  --danger: #b3261e;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--bg);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 6px;
+  font-size: clamp(26px, 5vw, 38px);
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+h3 {
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.app {
+  width: min(960px, 100% - 24px);
+  margin: 0 auto;
+  padding: 16px 0 64px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 20px;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -12px 12px;
+  padding: 10px 12px;
+  background: rgb(242 245 242 / 92%);
+  backdrop-filter: blur(6px);
+}
+
+.topbar-title {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #638071;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.eyebrow.light,
+.muted.light {
+  color: #c8d9ce;
+}
+
+.subtitle,
+.muted,
+.help {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.panel {
+  margin-bottom: 14px;
+  padding: 18px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 4px 16px rgb(25 55 35 / 4%);
+}
+
+/* ---------- スコアボード ---------- */
+.scoreboard,
+.result-hero {
+  border: 0;
+  background: var(--green-dark);
+  color: #fff;
+}
+
+.scores {
+  display: grid;
+  gap: 6px;
+}
+
+.team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.team-row.batting {
+  background: rgb(255 255 255 / 10%);
+}
+
+.team-row.winner .team-name::after {
+  content: " 🏆";
+}
+
+.team-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.bat-mark {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #3b2d00;
+  font-size: 11px;
+}
+
+.team-runs {
+  font-size: 40px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.situation-big {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 14px;
+  margin: 14px 0 6px;
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.situation-sub {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.diamond {
+  position: relative;
+  flex: 1;
+  margin: 0;
+}
+
+.diamond svg {
+  display: block;
+  width: 100%;
+}
+
+.diamond-field {
+  fill: #2c6a4a;
+}
+
+.diamond-infield {
+  fill: #b9875a;
+  opacity: 0.55;
+}
+
+.diamond-home {
+  fill: #fff;
+}
+
+.base {
+  fill: #fff;
+  opacity: 0.45;
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.base-on {
+  fill: var(--gold);
+  opacity: 1;
+  stroke: #3b2d00;
+}
+
+.runner-label {
+  position: absolute;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--gold);
+  color: #3b2d00;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.runner-1 {
+  top: 64%;
+  right: 0;
+}
+
+.runner-2 {
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.runner-3 {
+  top: 64%;
+  left: 0;
+}
+
+.outs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.outs-label {
+  color: #c8d9ce;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dot {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #c8d9ce;
+  border-radius: 50%;
+}
+
+.dot-on {
+  border-color: #ff8a65;
+  background: #ff6b3d;
+}
+
+.batters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.batters div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 8%);
+}
+
+.batters span,
+.last-play span {
+  color: #c8d9ce;
+  font-size: 11px;
+}
+
+.batters strong {
+  font-size: 17px;
+}
+
+.batters div:first-child strong {
+  font-size: 20px;
+}
+
+/* 次打者・次々打者は小さく2行で */
+.batters .upcoming {
+  justify-content: center;
+  gap: 4px;
+}
+
+.batters .upcoming p {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.batters .upcoming span {
+  flex-shrink: 0;
+  min-width: 4.8em;
+}
+
+.last-play {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid #476653;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ---------- 表 ---------- */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+th,
+td {
+  padding: 9px 8px;
+  border-bottom: 1px solid #edf0ed;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+thead th {
+  background: #f4f7f4;
+  color: #66756c;
+  font-size: 12px;
+}
+
+tbody th {
+  position: sticky;
+  left: 0;
+  max-width: 9em;
+  overflow: hidden;
+  background: #fff;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+
+.line-score .sum {
+  color: var(--green);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.line-score td.current {
+  background: #fff6d6;
+  font-weight: 800;
+}
+
+/* ---------- 入力 ---------- */
+.section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.section-heading h2 {
+  margin: 0;
+}
+
+.status-badge,
+.run-badge,
+.review-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.review-badge {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.cat,
+.option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 8px;
+  border: 1px solid #cfdcd2;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.cat.on {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
+.cat.quick {
+  background: var(--green-soft);
+}
+
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.option small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: #405148;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #d3ddd5;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 16px; /* iOS のズーム防止 */
+}
+
+textarea {
+  line-height: 1.6;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #318456;
+  outline: 3px solid rgb(49 132 86 / 15%);
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.check input {
+  width: 20px;
+  min-height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.seg {
+  flex: 1 1 auto;
+  min-width: 64px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #cfdcd2;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.seg.on {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
+.runner-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.runner-row {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafcfa;
+}
+
+.runner-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.runner-name span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.preview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.preview > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: 12px;
+  background: var(--green-soft);
+}
+
+.preview span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.preview strong {
+  font-size: 20px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepper button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #cfdcd2;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.notice {
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--warn-bg);
+  color: #5b4300;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.notice p {
+  margin-bottom: 8px;
+}
+
+.warning {
+  color: var(--warn);
+  font-size: 12px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------- ボタン ---------- */
+.primary-button,
+.secondary-button,
+.danger-button {
+  min-height: 48px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.primary-button {
+  width: 100%;
+  border: 0;
+  background: var(--green);
+  color: #fff;
+}
+
+.primary-button.big {
+  min-height: 56px;
+  margin-bottom: 16px;
+  font-size: 17px;
+}
+
+.secondary-button {
+  border: 1px solid #d3ddd5;
+  background: #fff;
+  color: #365444;
+}
+
+.danger-button {
+  border: 1px solid #f0c8c4;
+  background: #fff;
+  color: var(--danger);
+}
+
+.link-button {
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.link-button.danger {
+  color: var(--danger);
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #eef2ee;
+  font-size: 16px;
+}
+
+/* ---------- シート（下から出る画面） ---------- */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(10 25 18 / 45%);
+}
+
+.sheet {
+  width: min(640px, 100%);
+  max-height: 92dvh;
+  overflow-y: auto;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background: #fff;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.sheet-header h2 {
+  margin-bottom: 4px;
+  font-size: 22px;
+}
+
+.sheet-actions {
+  position: sticky;
+  bottom: -18px;
+  display: flex;
+  gap: 8px;
+  margin: 12px -16px -18px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid var(--line);
+}
+
+.sheet-actions .danger-button {
+  flex-shrink: 0;
+}
+
+/* ---------- 試合経過 ---------- */
+.play-list,
+.timeline,
+.game-list,
+.events,
+.achievements ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.play-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e9eee9;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+}
+
+.play-item.ignored {
+  opacity: 0.5;
+}
+
+.play-time {
+  flex-shrink: 0;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #edf4ee;
+  color: #386348;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.play-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.play-content strong {
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.play-content span {
+  color: #7b867e;
+  font-size: 12px;
+}
+
+.play-content .note {
+  color: #405148;
+}
+
+.empty-state {
+  padding: 20px 8px;
+  color: #7a857d;
+  font-size: 14px;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.timeline li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.events li {
+  padding: 10px 12px;
+  border-left: 4px solid var(--gold);
+  border-radius: 6px;
+  background: #fffbea;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.achievements + .achievements {
+  margin-top: 16px;
+}
+
+.achievements li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf0ed;
+  font-size: 15px;
+}
+
+.achievements li span {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.result-hero {
+  text-align: center;
+}
+
+.result-hero .team-row {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.verdict {
+  margin: 14px 0 6px;
+  color: var(--gold);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.finished-panel {
+  text-align: center;
+}
+
+/* ---------- 試合一覧・作成 ---------- */
+.game-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #edf0ed;
+}
+
+.game-item {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 4px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.game-item span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.game-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.team-forms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.team-forms h2 {
+  font-size: 15px;
+}
+
+.team-actions {
+  margin-bottom: 14px;
+}
+
+.footer {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+  color: #77827a;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.footer p {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .team-forms {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .team-runs {
+    font-size: 34px;
+  }
+
+  .option-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------- 守備位置 ---------- */
+.lineup-rows,
+.lineup-list,
+.defense-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lineup-rows li {
+  display: grid;
+  grid-template-columns: 24px 1fr 8.5em 40px;
+  align-items: center;
+  gap: 6px;
+}
+
+.order {
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.lineup-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.lineup-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.lineup-panel summary h2 {
+  margin: 0;
+}
+
+.lineup-panel summary h2::before {
+  content: "▸ ";
+  color: var(--muted);
+}
+
+.lineup-panel[open] summary h2::before {
+  content: "▾ ";
+}
+
+.lineup-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.lineup-list li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  border-bottom: 1px solid #edf0ed;
+  font-size: 14px;
+}
+
+.lineup-list li.now {
+  border-radius: 8px;
+  background: #fff6d6;
+}
+
+.pos {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pos.none {
+  color: var(--warn);
+}
+
+.defense-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.defense-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.picker {
+  display: grid;
+  gap: 6px;
+}
+
+.seg-sub {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.batters .pitcher {
+  grid-column: 1 / -1;
+}
+
+.batters .pitcher strong {
+  font-size: 15px;
+}
+
+@media (max-width: 640px) {
+  .lineup-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- チーム・シーズン ---------- */
+.season-tabs {
+  margin-bottom: 14px;
+}
+
+.team-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #cfdcd2;
+  border-radius: 14px;
+  background: #fafcfa;
+  text-align: left;
+}
+
+.team-card strong {
+  font-size: 17px;
+}
+
+.team-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.team-card .season {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.team-title {
+  margin: 0 0 4px;
+  color: #fff;
+}
+
+.result-mark {
+  display: inline-block;
+  min-width: 2em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #eef2ee;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.result-mark.win {
+  background: var(--green);
+  color: #fff;
+}
+
+.result-mark.loss {
+  background: #f7dcd9;
+  color: var(--danger);
+}
+
+.player-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.player-chips span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f5f1;
+  font-size: 14px;
+}
+
+.player-chips b {
+  margin-right: 4px;
+  color: var(--green);
+}
+
+.player-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-rows li {
+  display: grid;
+  grid-template-columns: 5em 1fr 40px;
+  gap: 6px;
+  align-items: center;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stack {
+  display: grid;
+  gap: 8px;
+}
+
+.decisions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.decision-edit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .decision-edit,
+  .two-col {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* ---------- アプリらしい操作感 ---------- */
+button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+.topbar {
+  padding-top: calc(10px + env(safe-area-inset-top));
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* カウント表示（B・S・O） */
+.counts {
+  display: grid;
+  gap: 8px;
+}
+
+.count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-label {
+  width: 1.2em;
+  color: #c8d9ce;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dot-on.ball {
+  border-color: #7ee2a8;
+  background: #3fcf7c;
+}
+
+.dot-on.strike {
+  border-color: #ffe08a;
+  background: #f5c542;
+}
+
+.dot-on.out {
+  border-color: #ff8a65;
+  background: #ff6b3d;
+}
+
+.pitch-count {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 12%);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pitch-count.near {
+  background: var(--gold);
+  color: #3b2d00;
+}
+
+.pitch-count.over {
+  background: #ff6b3d;
+  color: #fff;
+}
+
+.pitch-alert {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--warn-bg);
+  color: #5b4300;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pitch-alert.over {
+  background: #fde3df;
+  color: var(--danger);
+}
+
+/* 画面下に固定する1球入力パッド */
+.app.with-pad {
+  padding-bottom: calc(205px + env(safe-area-inset-bottom));
+}
+
+.pitch-pad {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) 52px;
+  gap: 6px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 -6px 20px rgb(25 55 35 / 8%);
+  backdrop-filter: blur(8px);
+}
+
+.pad-count {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pad-count b {
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.pad {
+  min-height: 56px;
+  border: 0;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.pad.ball {
+  background: #dff5e7;
+  color: #19633b;
+}
+
+.pad.strike {
+  background: #fff1c7;
+  color: #6b4e00;
+}
+
+.pad.foul {
+  background: #eef2ee;
+  color: #405148;
+}
+
+.pad.undo {
+  background: #f3f4f3;
+  color: var(--muted);
+  font-size: 22px;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(215px + env(safe-area-inset-bottom));
+  z-index: 30;
+  width: min(560px, calc(100% - 32px));
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--green-dark);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.6;
+  transform: translateX(-50%);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 20%);
+}
+
+.import-games {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.import-games li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f4f7f4;
+}
+
+.import-games span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.map-row {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf0ed;
+}
+
+.confirm-backdrop {
+  z-index: 40;
+  align-items: center;
+  padding: 16px;
+}
+
+.confirm-sheet {
+  border-radius: 18px;
+}
+
+.confirm-message {
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.confirm-sheet textarea,
+.confirm-sheet input {
+  margin-bottom: 12px;
+}
+
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.danger-button.solid {
+  border: 0;
+  background: var(--danger);
+  color: #fff;
+}
+
+#share-code {
+  margin-top: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+/* 登録チームの先発：打順・選手・背番号・守備位置・削除 */
+.lineup-rows.with-number li {
+  grid-template-columns: 20px 1fr 3.6em 4.6em 40px;
+}
+
+.number-input {
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.bench-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bench-rows li {
+  display: grid;
+  grid-template-columns: 1fr 4.2em 5.5em;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: #eef6ef;
+}
+
+.bench-rows li.off {
+  background: #f4f4f4;
+  color: var(--muted, #666);
+}
+
+.bench-rows small {
+  margin-left: 6px;
+  color: var(--muted, #666);
+}
+
+.bench-state {
+  font-size: 12px;
+  text-align: right;
+}
+
+.player-rows li:has(select) {
+  grid-template-columns: 1fr 7.5em 40px;
+}
+
+.grade-group h3 {
+  margin: 10px 0 6px;
+  font-size: 14px;
+}
+
+.filter-panel {
+  display: grid;
+  gap: 8px;
+}
+
+/* 打球の位置 */
+.field-picker svg {
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  touch-action: manipulation;
+}
+
+.field-picker .zone {
+  stroke: #fff;
+  stroke-width: 1.5;
+  cursor: pointer;
+  outline: none;
+}
+
+.field-picker .zone.outfield {
+  fill: #9fd3a8;
+}
+
+.field-picker .zone.outfield.gap {
+  fill: #b9e0bf;
+}
+
+.field-picker .zone.infield {
+  fill: #e6c9a0;
+}
+
+.field-picker .zone.infield.gap {
+  fill: #efd9b9;
+}
+
+.field-picker .zone:focus-visible {
+  stroke: #183c2b;
+  stroke-width: 2.5;
+}
+
+.field-picker .zone.on {
+  /* 外野・内野・間の色より優先する */
+  fill: #e8792b !important;
+}
+
+.field-picker .diamond {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.field-picker .zone-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: #183c2b;
+  pointer-events: none;
+}
+
+.field-picker .zone-label.infield {
+  font-size: 10.5px;
+}
+
+.field-picker .zone-label.small {
+  font-size: 9.5px;
+}
+
+.field-picker .zone-label.on {
+  fill: #fff;
+}
+
+.field-picker-value {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* 入力パッド上の球数表示 */
+.pad-pitches {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name num"
+    "meter meter"
+    "left left";
+  align-items: center;
+  gap: 2px 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #183c2b;
+  color: #fff;
+}
+
+.pad-pitcher {
+  grid-area: name;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.pad-pitch-num {
+  grid-area: num;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pad-pitch-num b {
+  font-size: 30px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pad-pitch-num small {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.pad-meter {
+  grid-area: meter;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 18%);
+  overflow: hidden;
+}
+
+.pad-meter span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #5fd08a;
+}
+
+.pad-left {
+  grid-area: left;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pad-left small {
+  margin-left: 6px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.pad-pitches.near {
+  background: #6b4e00;
+}
+
+.pad-pitches.near .pad-meter span {
+  background: var(--gold);
+}
+
+.pad-pitches.over {
+  background: #b3261e;
+}
+
+.pad-pitches.over .pad-meter span {
+  background: #fff;
+}
+
+.foul-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.foul-main small {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+.foul-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.foul-grid .option {
+  padding-left: 2px;
+  padding-right: 2px;
+  font-size: 13px;
+  word-break: keep-all;
+}
+
+/* 投手の指標グラフ */
+.metric-charts {
+  display: grid;
+  gap: 18px;
+}
+
+.metric-chart h3 {
+  margin: 0 0 2px;
+  font-size: 15px;
+}
+
+.metric-chart ul {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.metric-chart li {
+  display: grid;
+  grid-template-columns: 6.5em 1fr 3.6em;
+  align-items: center;
+  gap: 8px;
+}
+
+.metric-name {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.metric-name small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.metric-track {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background: #edf1ee;
+}
+
+.metric-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: #9db3a6;
+}
+
+.metric-bar.good {
+  background: var(--green);
+}
+
+.metric-guide {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 0;
+  border-left: 2px dashed #e8792b;
+}
+
+.metric-value {
+  text-align: right;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metric-guide-key {
+  display: inline-block;
+  width: 0;
+  height: 12px;
+  border-left: 2px dashed #e8792b;
+}
+
+/* ---------- 試合中のコンパクトなスコアボード ---------- */
+.scoreboard.sb {
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.sb-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.sb-scores {
+  display: grid;
+  gap: 2px;
+}
+
+.sb-team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sb-team.batting {
+  background: rgb(255 255 255 / 12%);
+}
+
+.sb-team.batting .sb-team-name::before {
+  content: "▶ ";
+  color: var(--gold);
+  font-size: 11px;
+}
+
+.sb-team-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-team strong {
+  font-size: 20px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-inning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 4.6em;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 10%);
+  line-height: 1.25;
+}
+
+.sb-inning b {
+  font-size: 17px;
+}
+
+.sb-inning span {
+  font-size: 12px;
+  color: #c8d9ce;
+}
+
+.sb-mid {
+  display: grid;
+  grid-template-columns: 52px auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mini-diamond {
+  width: 52px;
+  height: auto;
+}
+
+.mini-diamond .base {
+  fill: rgb(255 255 255 / 18%);
+  stroke: rgb(255 255 255 / 50%);
+  stroke-width: 1;
+}
+
+.mini-diamond .base-on {
+  fill: var(--gold);
+  stroke: var(--gold);
+}
+
+.mini-diamond .diamond-home {
+  fill: rgb(255 255 255 / 60%);
+}
+
+.sb-counts {
+  gap: 3px;
+}
+
+.sb-counts .count-row {
+  gap: 4px;
+}
+
+.sb-counts .dot {
+  width: 12px;
+  height: 12px;
+}
+
+.sb-counts .count-label {
+  width: 1em;
+  font-size: 11px;
+}
+
+.sb-batters {
+  min-width: 0;
+}
+
+.sb-batters p {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #dbe7df;
+}
+
+.sb-batters p span {
+  flex-shrink: 0;
+  color: #9fb8a8;
+  font-size: 11px;
+}
+
+.sb-batters .sb-now strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  font-size: 17px;
+}
+
+.sb-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #dbe7df;
+}
+
+.sb-line .pitch-count {
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.sb-runners {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-last {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid #476653;
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sb-last span {
+  flex-shrink: 0;
+  color: #9fb8a8;
+}
+
+/* 入力パネルの見出しは1行に */
+.input-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* 入力パッド上の1行：BSO・球数バー・今日の球数 */
+.pad-status {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: #183c2b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pad-status > * {
+  grid-area: auto;
+}
+
+.pad-bso b {
+  margin: 0 6px 0 2px;
+  font-size: 17px;
+}
+
+.pad-status .pad-meter {
+  height: 8px;
+}
+
+.pad-status .pad-pitch-num b {
+  font-size: 22px;
+}
+
+.pad-status .pad-left {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.pad-status.near {
+  background: #6b4e00;
+}
+
+.pad-status.near .pad-meter span {
+  background: var(--gold);
+}
+
+.pad-status.over {
+  background: #b3261e;
+}
+
+.pad-status.over .pad-meter span {
+  background: #fff;
+}
+
+.app.with-pad {
+  padding-bottom: calc(130px + env(safe-area-inset-bottom));
+}
+
+.toast {
+  bottom: calc(140px + env(safe-area-inset-bottom));
+}
+
+.pad {
+  min-height: 50px;
+}
+
+/* スマホでは結果のボタンを3列・低めにして、スクロールせずに押せるようにする */
+@media (max-width: 520px) {
+  .category-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .category-grid .cat {
+    min-height: 46px;
+    padding: 4px;
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .input-panel {
+    padding: 12px;
+  }
+}
+
+/* 打球の種類（ヒット・ゴロ・フライ・ライナー）は目立たせる */
+.cat.ball-kind {
+  border-color: var(--green);
+  color: var(--green);
+  font-size: 16px;
+}
+
+.choice-grid {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.choice-grid .option {
+  min-height: 64px;
+  font-size: 18px;
+}
+
+/* エラー・野手選択の守備の流れ */
+.fielding-flow .flow-step {
+  margin: 10px 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.flow-preview {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 打者・走者の動きをベースのタップで入力 */
+.runner-stepper {
+  display: grid;
+  gap: 8px;
+}
+
+.stepper-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepper-chips .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 84px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.stepper-chips .chip span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stepper-chips .chip small {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.stepper-chips .chip.on {
+  border-color: #e8792b;
+  box-shadow: 0 0 0 2px #e8792b inset;
+}
+
+.stepper-chips .chip.done {
+  background: var(--green-soft);
+}
+
+.stepper-q {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.stepper-q b {
+  color: #c35a12;
+}
+
+.stepper-field {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  border-radius: 14px;
+  background: #e6c9a0;
+  touch-action: manipulation;
+}
+
+.stepper-lines {
+  fill: #9fd3a8;
+  stroke: #fff;
+  stroke-width: 3;
+}
+
+.stepper-origin {
+  fill: rgb(232 121 43 / 25%);
+  stroke: #e8792b;
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.stepper-base {
+  cursor: pointer;
+  outline: none;
+}
+
+.stepper-base .hit {
+  fill: transparent;
+}
+
+.stepper-base .plate {
+  fill: #fff;
+  stroke: #183c2b;
+  stroke-width: 2;
+}
+
+.stepper-base:focus-visible .plate,
+.stepper-base:hover .plate {
+  fill: #ffe9d6;
+}
+
+.stepper-base.current .plate {
+  fill: #e8792b;
+  stroke: #c35a12;
+}
+
+.stepper-base.disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.stepper-base .base-label {
+  fill: #183c2b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.stepper-base .base-names {
+  fill: #183c2b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stepper-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stepper-actions button {
+  flex: 1 1 auto;
+  min-height: 44px;
+}
+
+.danger-soft {
+  padding: 8px 12px;
+  border: 1px solid #f0b8ae;
+  border-radius: 10px;
+  background: #fde3df;
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.stepper-field.done .stepper-base.disabled {
+  opacity: 1;
+}
+
+/* 走者ごとのポップアップは確認画面の上に重ねる */
+.runner-popup {
+  z-index: 60;
+}
+
+.runner-popup .stepper-field {
+  max-width: 300px;
+}
+
+/* ===== ホーム（A グラウンド） ===== */
+body:has(.app.home) {
+  background: #f3f1ea;
+}
+
+.home-hero {
+  position: relative;
+  height: 280px;
+  overflow: hidden;
+  background: #2f7d4a;
+  color: #fff;
+}
+
+.home-hero-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home-hero-text {
+  position: relative;
+  width: min(960px, 100% - 24px);
+  margin: 0 auto;
+  padding: 28px 8px 0;
+}
+
+.home-hero-text p {
+  margin: 0 0 6px;
+  color: #d9f0df;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.home-hero-text { text-shadow: 0 1px 2px rgb(0 0 0 / 25%); }
+
+.home-hero-text h1 {
+  margin: 0 0 6px;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.home-hero-text span {
+  color: #e9f6ec;
+  font-size: 14px;
+}
+
+.app.home {
+  position: relative;
+  margin-top: -64px;
+  padding-top: 0;
+}
+
+.home-cta {
+  display: block;
+  width: 100%;
+  height: 64px;
+  margin-bottom: 18px;
+  border: 0;
+  border-radius: 16px;
+  background: #e8792b;
+  box-shadow: 0 6px 0 #b85a17;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.home-cta:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #b85a17;
+}
+
+.app.home .panel {
+  border-color: #e2ddd0;
+  box-shadow: none;
+}
+
+.home-team {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-team-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-team-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #2f7d4a;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.home-team-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-team-name strong {
+  font-size: 17px;
+}
+
+.home-team-name small {
+  color: #55645a;
+  font-size: 13px;
+}
+
+.home-team-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-team-stats > span {
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: #eef6f0;
+  text-align: center;
+}
+
+.home-team-stats small {
+  display: block;
+  color: #4b5b51;
+  font-size: 11px;
+}
+
+.home-team-stats b {
+  font-size: 17px;
+}
+
+.app.home .team-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.game-item.home-game {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-game-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.home-game-body span {
+  color: #55645a;
+  font-size: 12px;
+}
+
+.home-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e5e2d8;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.home-mark.win { background: #e8792b; }
+.home-mark.loss { background: #8a958e; }
+.home-mark.draw { background: #b6a77f; }
+.home-mark.playing { background: #2f7d4a; font-size: 11px; }
+
+.home-score {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.app.home .game-list li {
+  flex-wrap: wrap;
+  gap: 0 8px;
+  padding: 6px 0;
+}
+
+.app.home .game-list .game-actions {
+  width: 100%;
+  justify-content: flex-end;
+  margin-top: -6px;
+}
+
+/* ===== 名簿・チームのメンバー選び ===== */
+.home-roster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px dashed #c9d8cc;
+  border-radius: 12px;
+  background: #f7faf7;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-roster-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff;
+  border: 2px solid #2f7d4a;
+  color: #2f7d4a;
+  font-weight: 900;
+}
+
+.home-roster-go {
+  margin-left: auto;
+  color: #2f7d4a;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.roster-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+
+.roster-add input,
+.roster-add select {
+  min-height: 44px;
+}
+
+.roster-join {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.check-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 12px 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.check-chip.on {
+  border-color: #2f7d4a;
+  background: #eef6f0;
+  font-weight: 700;
+}
+
+.check-chip input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #2f7d4a;
+}
+
+.roster-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roster-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #edf0ed;
+}
+
+.roster-name {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+}
+
+button.roster-name {
+  cursor: pointer;
+  text-decoration: underline dotted #9aa89f;
+  text-underline-offset: 4px;
+}
+
+.roster-name small {
+  margin-left: 8px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.roster-list select {
+  min-height: 38px;
+}
+
+.roster-fold summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.grade-seg {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.grade-seg .seg {
+  padding-inline: 0;
+}
+
+.member-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.member-quick {
+  display: flex;
+  gap: 10px;
+}
+
+.member-group h3 {
+  margin: 12px 0 6px;
+  font-size: 14px;
+}
+
+.member-group h3 small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.member-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.link-button.inline {
+  padding: 0 2px;
+  font-size: inherit;
+}
+
+.roster-list select {
+  flex: none;
+  width: auto;
+}
+
+.roster-list .link-button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.grade-seg {
+  gap: 4px;
+}
+
+.grade-seg .seg {
+  min-width: 0;
+  font-size: 14px;
+}
