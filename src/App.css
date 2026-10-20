@@ -2703,3 +2703,52 @@ button.roster-name {
   min-height: 44px;
 }
 
+
+/* 打順のドラッグ並べ替え */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 44px;
+  border-radius: 8px;
+  background: #eef2ee;
+  color: var(--ink, #1c2a22);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.drag-handle .grip {
+  color: #9aa89f;
+  font-size: 11px;
+  letter-spacing: -2px;
+}
+
+.lineup-rows li.dragging {
+  position: relative;
+  z-index: 1;
+  border-radius: 10px;
+  background: #fff7ee;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 15%);
+  outline: 2px solid #e8792b;
+}
+
+.lineup-rows li.dragging .drag-handle {
+  background: #e8792b;
+  color: #fff;
+  cursor: grabbing;
+}
+
+.lineup-rows li.dragging .drag-handle .grip {
+  color: #fff;
+}
+
+.lineup-rows li {
+  grid-template-columns: 34px 1fr 8.5em 40px;
+}
+
+.lineup-rows.with-number li {
+  grid-template-columns: 30px minmax(0, 1fr) 3em 5em 34px;
+}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CATEGORIES, eligiblePlayers, gradeLabel } from "../domain/categories";
 import { categoryForGrade } from "../domain/roster";
+import { moveItem, useDragReorder } from "./useDragReorder";
 import { newId } from "../domain/id";
 import { DEFAULT_PITCH_LIMIT } from "../domain/pitchCount";
 import { POSITION_LABELS, POSITION_SHORT, POSITIONS, positionProblems } from "../domain/positions";
@@ -331,6 +332,8 @@ function ProfileLineup({
     onChange({ ...form, rows, benchNumbers });
   };
 
+  const drag = useDragReorder<HTMLOListElement>((from, to) => onChange({ ...form, rows: moveItem(form.rows, from, to) }));
+
   if (eligible.length === 0) {
     return <p className="notice">{category}の選手が名簿にいません。名簿で選手の学年を確認するか、「下の学年の選手も選べるようにする」を使ってください。</p>;
   }
@@ -339,10 +342,11 @@ function ProfileLineup({
     <>
       <div className="field">
         先発（打順・背番号・守備位置）
-        <ol className="lineup-rows with-number">
+        <span className="muted small">打順を変えるときは、番号の「⋮⋮」を指で押したまま上下に動かします。</span>
+        <ol className="lineup-rows with-number" ref={drag.listRef}>
           {form.rows.map((r, i) => (
-            <li key={i}>
-              <span className="order">{i + 1}</span>
+            <li key={i} className={drag.dragging === i ? "dragging" : undefined}>
+              <OrderHandle index={i} {...drag.handleProps(i)} />
               <select value={r.playerId} onChange={(e) => editRow(i, { playerId: e.target.value })} aria-label={`${i + 1}番の選手`}>
                 <option value="">選手を選ぶ</option>
                 {eligible
@@ -413,7 +417,20 @@ function ProfileLineup({
   );
 }
 
+/** 打順の番号。押したまま上下に動かすと打順を入れ替えられる */
+function OrderHandle({ index, ...handlers }: { index: number } & ReturnType<ReturnType<typeof useDragReorder>["handleProps"]>) {
+  return (
+    <span className="order drag-handle" role="button" aria-label={`${index + 1}番：押したまま上下に動かして打順を入れ替え`} {...handlers}>
+      <span className="grip" aria-hidden="true">
+        ⋮⋮
+      </span>
+      {index + 1}
+    </span>
+  );
+}
+
 function ManualLineup({ form, onChange }: { form: ManualForm; onChange: (f: ManualForm) => void }) {
+  const drag = useDragReorder<HTMLOListElement>((from, to) => onChange({ ...form, rows: moveItem(form.rows, from, to) }));
   const editRow = (i: number, patch: Partial<ManualRow>) => onChange({ ...form, rows: form.rows.map((r, j) => (j === i ? { ...r, ...patch } : r)) });
   return (
     <>
@@ -423,10 +440,11 @@ function ManualLineup({ form, onChange }: { form: ManualForm; onChange: (f: Manu
       </label>
       <div className="field">
         打順と守備位置
-        <ol className="lineup-rows">
+        <span className="muted small">打順を変えるときは、番号の「⋮⋮」を指で押したまま上下に動かします。</span>
+        <ol className="lineup-rows" ref={drag.listRef}>
           {form.rows.map((r, i) => (
-            <li key={i}>
-              <span className="order">{i + 1}</span>
+            <li key={i} className={drag.dragging === i ? "dragging" : undefined}>
+              <OrderHandle index={i} {...drag.handleProps(i)} />
               <input value={r.name} onChange={(e) => editRow(i, { name: e.target.value })} placeholder="名前" aria-label={`${i + 1}番の名前`} />
               <PositionSelect value={r.position} onChange={(position) => editRow(i, { position })} label={`${i + 1}番の守備位置`} />
               <button className="icon-button" aria-label={`${i + 1}番を削除`} onClick={() => onChange({ ...form, rows: form.rows.filter((_, j) => j !== i) })}>
