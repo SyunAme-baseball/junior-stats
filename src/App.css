@@ -2752,3 +2752,19 @@ button.roster-name {
 .lineup-rows.with-number li {
   grid-template-columns: 30px minmax(0, 1fr) 3em 5em 34px;
 }
+
+/* 守備位置は「投」「遊」などの1文字表示なので、欄を細くして名前を広くする */
+.lineup-rows li {
+  grid-template-columns: 34px minmax(0, 1fr) 5.2em 40px;
+}
+
+.lineup-rows.with-number li {
+  grid-template-columns: 30px minmax(0, 1fr) 3em 4.2em 34px;
+}
+
+.lineup-rows .position-select {
+  padding-left: 8px;
+  padding-right: 2px;
+  text-align: center;
+  font-weight: 700;
+}

@@ -4,7 +4,7 @@ import { categoryForGrade } from "../domain/roster";
 import { moveItem, useDragReorder } from "./useDragReorder";
 import { newId } from "../domain/id";
 import { DEFAULT_PITCH_LIMIT } from "../domain/pitchCount";
-import { POSITION_LABELS, POSITION_SHORT, POSITIONS, positionProblems } from "../domain/positions";
+import { POSITION_SHORT, POSITIONS, positionProblems } from "../domain/positions";
 import type { Game, Player, Position, Side, Team, TeamProfile } from "../domain/types";
 
 /** その場で入力するチーム（相手チームなど） */
@@ -292,13 +292,14 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
   );
 }
 
+/** 守備位置の選択。番号は出さず「投」「遊」「左」のような1文字で表示する */
 function PositionSelect({ value, onChange, label, short }: { value: Position | null; onChange: (p: Position | null) => void; label: string; short?: boolean }) {
   return (
-    <select value={value ?? ""} onChange={(e) => onChange(e.target.value ? (Number(e.target.value) as Position) : null)} aria-label={label}>
+    <select className="position-select" value={value ?? ""} onChange={(e) => onChange(e.target.value ? (Number(e.target.value) as Position) : null)} aria-label={label}>
       <option value="">{short ? "なし" : "守備なし"}</option>
       {POSITIONS.map((p) => (
         <option key={p} value={p}>
-          {short ? `${p} ${POSITION_SHORT[p]}` : POSITION_LABELS[p]}
+          {POSITION_SHORT[p]}
         </option>
       ))}
     </select>

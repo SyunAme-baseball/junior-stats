@@ -3,7 +3,7 @@ import { other, pitcherOf, replay, stateBefore } from "../domain/engine";
 import { inningLabel, makeNameOf, sentence } from "../domain/describe";
 import { newId } from "../domain/id";
 import { availability, defaultMoves, RESULT_LIST, RESULTS, type Category } from "../domain/results";
-import { POSITION_LABELS } from "../domain/positions";
+import { POSITION_SHORT } from "../domain/positions";
 import { limitOf, pitchLevel } from "../domain/pitchCount";
 import type { BattedKind, BattingPlay, Direction, EndPlay, Game, PitchKind, Play, ResultCode, RunnerPlay } from "../domain/types";
 import { BALL_KIND_LABELS, BattedBallDialog, type BallKind } from "./BattedBall";
@@ -269,7 +269,7 @@ export function GameScreen({ game, onChange, onShowResult, onBack, earlierPitche
                     <li key={id} className={!state.finished && side === state.offense && id === state.currentBatterId ? "now" : ""}>
                       <span className="order">{i + 1}</span>
                       <span className="pname">{nameOf(id)}</span>
-                      <span className={pos ? "pos" : "pos none"}>{pos ? POSITION_LABELS[pos] : "守備位置なし"}</span>
+                      <span className={pos ? "pos" : "pos none"}>{pos ? POSITION_SHORT[pos] : "守備なし"}</span>
                     </li>
                   );
                 })}

@@ -6,7 +6,7 @@ import { availability, defaultMoves, RESULT_LIST, RESULTS } from "../domain/resu
 import { FieldPicker } from "./FieldPicker";
 import { RunnerStepper } from "./RunnerStepper";
 import { BATTED_LABELS, ERROR_TYPE_LABELS, fielderFromDirection, fieldingText, THROW_LABELS } from "../domain/fielding";
-import { POSITION_LABELS, POSITIONS } from "../domain/positions";
+import { POSITION_SHORT, POSITIONS } from "../domain/positions";
 import type { BattedKind, BattingPlay, Dest, ErrorType, Position, Direction, From, Game, ResultCode, RunnerMove, RunnerPlay } from "../domain/types";
 
 type Props = {
@@ -62,7 +62,7 @@ export function PlayEditor({ game, before, index, initialResult, initialDirectio
           const i = before.positions[def].indexOf(p);
           return (
             <button key={p} className={value === p ? "seg on" : "seg"} onClick={() => onChange(value === p ? undefined : p)}>
-              {POSITION_LABELS[p]}
+              {POSITION_SHORT[p]}
               {i >= 0 && <small className="seg-sub">{nameOf(before.lineups[def][i])}</small>}
             </button>
           );

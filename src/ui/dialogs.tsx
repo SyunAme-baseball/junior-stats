@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { other, type GameState } from "../domain/engine";
 import type { NameOf } from "../domain/describe";
 import { newId } from "../domain/id";
-import { POSITION_LABELS, POSITIONS, positionProblems } from "../domain/positions";
+import { POSITION_SHORT, POSITIONS, positionProblems } from "../domain/positions";
 import type { EndPlay, Game, Player, Position, Side, SubstitutionPlay } from "../domain/types";
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -248,7 +248,7 @@ export function DefenseDialog({
                   <option value="">守備なし</option>
                   {POSITIONS.map((p) => (
                     <option key={p} value={p}>
-                      {POSITION_LABELS[p]}
+                      {POSITION_SHORT[p]}
                     </option>
                   ))}
                 </select>
