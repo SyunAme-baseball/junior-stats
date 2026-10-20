@@ -2678,3 +2678,10 @@ button.roster-name {
   min-width: 0;
   font-size: 14px;
 }
+
+.copyright {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}

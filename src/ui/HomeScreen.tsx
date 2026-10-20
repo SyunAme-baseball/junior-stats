@@ -266,6 +266,7 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
 
       <footer className="footer">
         <p className="disclaimer">本アプリは少年野球の記録を手助けするためのものです。犠打・失策・打点・勝敗投手などの判断が公式記録と異なる場合があります。</p>
+        <p className="copyright">© 2026 ジュニアスタッツ　無断での複製・配布を禁止します。</p>
       </footer>
     </main>
     </>
