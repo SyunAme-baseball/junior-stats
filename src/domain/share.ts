@@ -3,11 +3,82 @@
 
 import type { Game, Play, Player, TeamProfile } from "./types";
 
-export type SharePayload = { kind: "mieru-score-share"; v: 1; teams: TeamProfile[]; games: Game[] };
+/** 試合の共有は games、名簿の共有は roster（と、その選手を使うチーム）を入れる */
+export type SharePayload = { kind: "mieru-score-share"; v: 1; teams: TeamProfile[]; games: Game[]; roster?: Player[] };
 
 export function makePayload(games: Game[], profiles: TeamProfile[]): SharePayload {
   const ids = new Set(games.flatMap((g) => [g.teams.away.id, g.teams.home.id]));
   return { kind: "mieru-score-share", v: 1, teams: profiles.filter((t) => ids.has(t.id)), games };
+}
+
+/** 名簿の共有：クラブの名簿と登録チーム（試合は入れない） */
+export function makeRosterPayload(roster: Player[], profiles: TeamProfile[]): SharePayload {
+  // 打順・背番号の履歴は端末ごとのものなので送らない
+  const teams = profiles.map(({ lastLineups: _l, lastNumbers: _n, ...t }) => t);
+  return { kind: "mieru-score-share", v: 1, teams, games: [], roster };
+}
+
+export const isRosterPayload = (p: { games: Game[]; roster?: Player[] }) => p.games.length === 0 && !!p.roster?.length;
+
+export type RosterImport = {
+  roster: Player[];
+  teams: TeamProfile[];
+  added: number;
+  updated: number;
+  /** 同じ名前の選手がすでにいたので、新しく加えなかった人数 */
+  matched: number;
+  teamsAdded: number;
+};
+
+/**
+ * 受け取った名簿を、この端末の名簿・チームに取り込む。
+ * 同じ選手（同じID）は送り主の名前・学年・退団に合わせる。IDが違っても同じ名前の選手は同じ人として扱う。
+ * チームは同じIDがあれば選手を足し、なければ新しく登録する。
+ */
+export function planRosterImport(localRoster: Player[], localTeams: TeamProfile[], incoming: Player[], incomingTeams: TeamProfile[]): RosterImport {
+  const roster = [...localRoster];
+  const idMap = new Map<string, string>();
+  let added = 0;
+  let updated = 0;
+  let matched = 0;
+  for (const p of incoming) {
+    const i = roster.findIndex((x) => x.id === p.id);
+    if (i >= 0) {
+      const cur = roster[i];
+      if (cur.name !== p.name || cur.grade !== p.grade || !!cur.left !== !!p.left) {
+        roster[i] = { ...cur, name: p.name, grade: p.grade, left: p.left };
+        updated += 1;
+      }
+      idMap.set(p.id, p.id);
+      continue;
+    }
+    const same = roster.find((x) => !x.guest && norm(x.name) === norm(p.name));
+    if (same) {
+      idMap.set(p.id, same.id);
+      matched += 1;
+      continue;
+    }
+    // 背番号は試合ごとのものなので名簿には入れない
+    const { number: _n, ...player } = p;
+    roster.push(player);
+    idMap.set(p.id, p.id);
+    added += 1;
+  }
+
+  const teams: TeamProfile[] = [];
+  let teamsAdded = 0;
+  for (const t of incomingTeams) {
+    const players = t.players.map((p) => (idMap.has(p.id) ? { ...p, id: idMap.get(p.id)! } : p));
+    const local = localTeams.find((x) => x.id === t.id);
+    if (local) {
+      const extra = players.filter((p) => !local.players.some((x) => x.id === p.id));
+      if (extra.length) teams.push({ ...local, players: [...local.players, ...extra], updatedAt: Date.now() });
+    } else {
+      teams.push({ ...t, players, updatedAt: Date.now() });
+      teamsAdded += 1;
+    }
+  }
+  return { roster, teams, added, updated, matched, teamsAdded };
 }
 
 function toBase64Url(bytes: Uint8Array): string {

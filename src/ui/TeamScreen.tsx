@@ -298,7 +298,7 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
         <h2>チームの管理</h2>
         <div className="stack">
           <button className="secondary-button" onClick={onShare}>
-            チームの名簿と全試合を共有（ほかの保護者・端末へ）
+            このチームの全試合を共有（ほかの保護者・端末へ）
           </button>
           <button className="secondary-button" onClick={onOpenRoster}>
             名簿を開く（選手の追加・学年・進学・卒団）

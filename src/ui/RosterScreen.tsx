@@ -11,11 +11,13 @@ type Props = {
   onSave: (players: Player[]) => void;
   /** 追加した選手をチームにも入れる */
   onJoin: (player: Player, teamIds: string[]) => void;
+  /** 名簿をほかの指導者・保護者の端末に送る */
+  onShare: () => void;
   onBack: () => void;
 };
 
 /** 名簿：クラブの選手をまとめて管理する（追加・学年・退団・進学・卒団） */
-export function RosterScreen({ roster, teams, onSave, onJoin, onBack }: Props) {
+export function RosterScreen({ roster, teams, onSave, onJoin, onShare, onBack }: Props) {
   const [name, setName] = useState("");
   const [grade, setGrade] = useState<number>(6);
   // 追加する選手を入れられるチーム。最初は学年がいちばん近いチーム（4年生なら「4年生以下」）を選んでおく
@@ -57,7 +59,9 @@ export function RosterScreen({ roster, teams, onSave, onJoin, onBack }: Props) {
           ← 一覧
         </button>
         <span className="topbar-title">名簿</span>
-        <span />
+        <button className="link-button" onClick={onShare} disabled={roster.length === 0}>
+          名簿を共有
+        </button>
       </header>
 
       <section className="panel">

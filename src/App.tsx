@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { pitchesEarlierToday } from "./domain/pitchCount";
-import { decodePayload, makePayload, type SharePayload } from "./domain/share";
+import { decodePayload, isRosterPayload, makePayload, makeRosterPayload, type SharePayload } from "./domain/share";
 import type { Game, Player, TeamProfile } from "./domain/types";
 import { exportAll, exportGame, importData, normalizeGame } from "./storage/repository";
 import { LocalStorageRepository } from "./storage/localStorageRepository";
@@ -8,7 +8,7 @@ import { GameScreen } from "./ui/GameScreen";
 import { HomeScreen } from "./ui/HomeScreen";
 import { ResultScreen } from "./ui/ResultScreen";
 import { SetupScreen } from "./ui/SetupScreen";
-import { ImportDialog, ShareDialog } from "./ui/ShareImport";
+import { ImportDialog, RosterImportDialog, ShareDialog } from "./ui/ShareImport";
 import { TeamScreen } from "./ui/TeamScreen";
 import { RosterScreen } from "./ui/RosterScreen";
 import { TeamMembers } from "./ui/TeamMembers";
@@ -57,7 +57,7 @@ export default function App() {
     if (!m) return;
     history.replaceState(null, "", location.pathname + location.search);
     decodePayload(m[1])
-      .then((p) => setImporting({ games: p.games.map(normalizeGame), teams: p.teams }))
+      .then((p) => setImporting({ games: p.games.map(normalizeGame), teams: p.teams, roster: p.roster }))
       .catch(() => setToast("共有リンクを読み取れませんでした。リンクが途中で切れていないか確認してください。"));
   }, []);
 
@@ -123,7 +123,20 @@ export default function App() {
 
   const overlays = (
     <>
-      {importing && (
+      {importing && isRosterPayload(importing) && (
+        <RosterImportDialog
+          payload={importing}
+          repo={repo}
+          onClose={() => setImporting(null)}
+          onDone={(msg) => {
+            setImporting(null);
+            setTeams(repo.listTeams());
+            setRoster(repo.getRoster());
+            setToast(msg);
+          }}
+        />
+      )}
+      {importing && !isRosterPayload(importing) && (
         <ImportDialog
           payload={importing}
           repo={repo}
@@ -214,6 +227,9 @@ export default function App() {
             for (const t of repo.listTeams()) if (teamIds.includes(t.id)) repo.saveTeam({ ...t, players: [...t.players, player], updatedAt: Date.now() });
             setTeams(repo.listTeams());
           }}
+          onShare={() =>
+            setSharing({ title: `選手名簿（${roster.filter(isActive).length}人）`, payload: makeRosterPayload(repo.getRoster(), repo.listTeams()) })
+          }
           onBack={() => setView(view.back)}
         />
     );
@@ -315,7 +331,7 @@ export default function App() {
           if (text.startsWith("{")) setImporting(importData(text));
           else {
             const p = await decodePayload(text.replace(/^.*#import=/, ""));
-            setImporting({ games: p.games.map(normalizeGame), teams: p.teams });
+            setImporting({ games: p.games.map(normalizeGame), teams: p.teams, roster: p.roster });
           }
         } catch {
           setToast("共有コードを読み取れませんでした。途中で切れていないか確認してください。");

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { replay } from "../domain/engine";
-import { encodePayload, MAX_LINK_LENGTH, remapTeam, teamsInGames, type SharePayload } from "../domain/share";
+import { encodePayload, isRosterPayload, MAX_LINK_LENGTH, planRosterImport, remapTeam, teamsInGames, type SharePayload } from "../domain/share";
+import { GRADUATED, gradeLabel } from "../domain/categories";
 import { mergeIntoRoster } from "../domain/roster";
 import type { Game, Player, TeamProfile } from "../domain/types";
 import type { GameRepository } from "../storage/repository";
@@ -26,7 +27,8 @@ export function ShareDialog({ title, payload, onClose }: { title: string; payloa
   const [link, setLink] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
-  const fileName = `mieru-score-${new Date().toISOString().slice(0, 10)}.json`;
+  const forRoster = isRosterPayload(payload);
+  const fileName = `junior-stats-${forRoster ? "roster" : "games"}-${new Date().toISOString().slice(0, 10)}.json`;
 
   useEffect(() => {
     encodePayload(payload)
@@ -82,10 +84,12 @@ export function ShareDialog({ title, payload, onClose }: { title: string; payloa
       <p className="help">
         {title}
         <br />
-        受け取った人がリンクを開く（またはファイルを「ファイルから読み込む」）と、試合とチームの名簿を取り込めます。取り込んだ試合は、その人の登録チームの成績に合算できます。
+        {forRoster
+          ? "受け取った人がリンクを開く（またはファイルを「ファイルから読み込む」）と、選手名簿とチームを取り込めます。試合の記録は入っていません。名簿を先にそろえておくと、あとで受け取った試合の成績が同じ選手に合算されます。"
+          : "受け取った人がリンクを開く（またはファイルを「ファイルから読み込む」）と、試合を取り込めます。取り込んだ試合は、その人の登録チームの成績に合算できます。名簿だけを渡したいときは、名簿の画面の「名簿を共有する」を使ってください。"}
       </p>
       <p className="muted small">
-        試合{payload.games.length}件・チーム{payload.teams.length}件
+        {forRoster ? `選手${payload.roster?.length ?? 0}人` : `試合${payload.games.length}件`}・チーム{payload.teams.length}件
         {link && !tooLong && `・リンクの長さ ${link.length.toLocaleString()}文字`}
       </p>
       {tooLong && <p className="notice">データが大きいため、リンクでは送れません。「ファイルで送る」を使ってください。</p>}
@@ -251,6 +255,59 @@ export function ImportDialog({ payload, repo, onDone, onClose }: Props) {
       <div className="sheet-actions">
         <button className="primary-button" onClick={run}>
           取り込む
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** 受け取った選手名簿とチームを、この端末の名簿に取り込む（試合は入っていない） */
+export function RosterImportDialog({ payload, repo, onDone, onClose }: Props) {
+  const incoming = payload.roster ?? [];
+  const plan = useMemo(() => planRosterImport(repo.getRoster(), repo.listTeams(), incoming, payload.teams), [repo, incoming, payload.teams]);
+  const byGrade = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of incoming) {
+      const label = p.left ? "退団" : (p.grade ?? 0) >= GRADUATED ? "卒団" : gradeLabel(p.grade);
+      m.set(label, (m.get(label) ?? 0) + 1);
+    }
+    return [...m.entries()];
+  }, [incoming]);
+
+  const run = () => {
+    repo.saveRoster(plan.roster);
+    for (const t of plan.teams) repo.saveTeam(t);
+    const parts = [`選手${plan.added}人を追加`];
+    if (plan.updated) parts.push(`${plan.updated}人の学年・名前を更新`);
+    if (plan.matched) parts.push(`${plan.matched}人は同じ名前の選手がいたのでそのまま`);
+    if (plan.teamsAdded) parts.push(`チーム${plan.teamsAdded}件を登録`);
+    onDone(parts.join("、") + "しました。");
+  };
+
+  return (
+    <Sheet title="選手名簿を取り込む" onClose={onClose}>
+      <p className="help">送られてきた選手名簿です。この端末の名簿に追加します。試合の記録は入っていません。</p>
+      <ul className="import-games">
+        <li>
+          <strong>選手 {incoming.length}人</strong>
+          <span>{byGrade.map(([g, n]) => `${g} ${n}人`).join("・")}</span>
+        </li>
+        {payload.teams.length > 0 && (
+          <li>
+            <strong>チーム {payload.teams.length}件</strong>
+            <span>{payload.teams.map((t) => t.name).join("・")}</span>
+          </li>
+        )}
+      </ul>
+      <p className="muted small">
+        取り込むと：新しい選手 {plan.added}人
+        {plan.updated ? `・学年や名前が変わる選手 ${plan.updated}人` : ""}
+        {plan.matched ? `・同じ名前の選手がいるため追加しない ${plan.matched}人` : ""}
+        {plan.teamsAdded ? `・新しいチーム ${plan.teamsAdded}件` : ""}
+      </p>
+      <div className="sheet-actions">
+        <button className="primary-button" onClick={run}>
+          名簿に取り込む
         </button>
       </div>
     </Sheet>
