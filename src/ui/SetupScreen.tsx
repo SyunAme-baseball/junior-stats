@@ -123,20 +123,21 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
     update(side, t ? profileForm(t, category, includeLower) : { ...SAMPLE[side], name: "" });
   };
 
-  const problems: string[] = [];
-  const warnings: string[] = [];
+  // 打順・守備位置まわりの注意は、その側の先発メンバーの上に出す（下までスクロールしなくて済むように）
+  const sideIssues = { away: { problems: [] as string[], warnings: [] as string[] }, home: { problems: [] as string[], warnings: [] as string[] } };
   for (const side of ["away", "home"] as const) {
     const label = side === "away" ? "先攻" : "後攻";
     const form = teams[side];
+    const { problems, warnings } = sideIssues[side];
     if (form.kind === "manual" && !form.name.trim()) problems.push(`${label}チームの名前を入力してください`);
     const rows = startersOf(form);
     if (rows.length === 0) problems.push(`${label}チームの選手を1人以上入れてください`);
     for (const p of positionProblems(rows.map((r) => r.position))) {
-      (p.startsWith("ピッチャーがいません") ? warnings : problems).push(`${label}：${p}`);
+      (p.startsWith("ピッチャーがいません") ? warnings : problems).push(p);
     }
     if (form.kind === "profile") {
       const ids = form.rows.map((r) => r.playerId).filter(Boolean);
-      if (new Set(ids).size !== ids.length) problems.push(`${label}：同じ選手が打順に2回入っています`);
+      if (new Set(ids).size !== ids.length) problems.push("同じ選手が打順に2回入っています");
       const numbers = [
         ...form.rows.filter((r) => r.playerId).map((r) => r.number.trim()),
         ...Object.entries(form.benchNumbers)
@@ -144,12 +145,15 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
           .map(([, n]) => n.trim()),
       ].filter(Boolean);
       const dup = numbers.filter((n, i) => numbers.indexOf(n) !== i);
-      if (dup.length) problems.push(`${label}：背番号 ${[...new Set(dup)].join("、")} が重複しています`);
-      if (form.rows.some((r) => r.playerId && !r.number.trim())) warnings.push(`${label}：背番号が入っていない先発選手がいます`);
+      if (dup.length) problems.push(`背番号 ${[...new Set(dup)].join("、")} が重複しています`);
+      if (form.rows.some((r) => r.playerId && !r.number.trim())) warnings.push("背番号が入っていない先発選手がいます");
     }
   }
+  const commonProblems: string[] = [];
   if (teams.away.kind === "profile" && teams.home.kind === "profile" && teams.away.teamId === teams.home.teamId)
-    problems.push("先攻と後攻に同じ登録チームは選べません");
+    commonProblems.push("先攻と後攻に同じ登録チームは選べません");
+  const problems = [...commonProblems, ...sideIssues.away.problems, ...sideIssues.home.problems];
+  const sidesWithProblems = (["away", "home"] as const).filter((s) => sideIssues[s].problems.length > 0);
 
   const usesProfile = teams.away.kind === "profile" || teams.home.kind === "profile";
 
@@ -259,6 +263,16 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
                   ))}
                 </select>
               </label>
+              {sideIssues[side].problems.map((p) => (
+                <p key={p} className="error">
+                  ✕ {p}
+                </p>
+              ))}
+              {sideIssues[side].warnings.map((p) => (
+                <p key={p} className="warning">
+                  ⚠ {p}
+                </p>
+              ))}
               {form.kind === "profile" && profile ? (
                 <ProfileLineup form={form} profile={profile} category={category} includeLower={includeLower} onChange={(f) => update(side, f)} />
               ) : form.kind === "manual" ? (
@@ -275,16 +289,14 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
         </button>
       </div>
 
-      {problems.map((p) => (
+      {commonProblems.map((p) => (
         <p key={p} className="error">
           {p}
         </p>
       ))}
-      {warnings.map((p) => (
-        <p key={p} className="warning">
-          ⚠ {p}
-        </p>
-      ))}
+      {sidesWithProblems.length > 0 && (
+        <p className="error">{sidesWithProblems.map((s) => (s === "away" ? "先攻" : "後攻")).join("・")}の先発メンバーに直すところがあります（上の赤い表示を見てください）</p>
+      )}
       <button className="primary-button big" disabled={problems.length > 0} onClick={start}>
         試合開始
       </button>
