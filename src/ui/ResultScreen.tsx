@@ -4,6 +4,7 @@ import { battingAverage, inningsPitched, replay, type PlayerStats } from "../dom
 import { POSITION_SHORT } from "../domain/positions";
 import { highlights, inningLabel, makeNameOf, sentence } from "../domain/describe";
 import type { Game, Side } from "../domain/types";
+import { clockTime, durationLabel } from "../domain/gameClock";
 import { LineScore } from "./Scoreboard";
 
 const END_LABEL = { regulation: "", walkoff: "サヨナラ", called: "コールドゲーム", time: "時間切れ", other: "" } as const;
@@ -69,6 +70,12 @@ export function ResultScreen({ game, onChange, onBack }: { game: Game; onChange:
           </p>
         )}
         {game.date && <p className="muted light">{game.date}</p>}
+        {game.startedAt && (
+          <p className="muted light">
+            {clockTime(game.startedAt)}〜{game.endedAt ? `${clockTime(game.endedAt)}（${durationLabel(game.endedAt - game.startedAt)}）` : ""}
+            {game.timeLimit ? `　試合時間 ${game.timeLimit}分` : ""}
+          </p>
+        )}
       </section>
 
       {reviewCount > 0 && (

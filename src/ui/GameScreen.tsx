@@ -11,6 +11,7 @@ import { PlayEditor } from "./PlayEditor";
 import { ask } from "./confirm";
 import { LineScore, Scoreboard } from "./Scoreboard";
 import { DefenseDialog, EndGameDialog, PinchDialog, type SubSave } from "./dialogs";
+import { GameClock } from "./GameClock";
 
 type Props = {
   game: Game;
@@ -146,6 +147,7 @@ export function GameScreen({ game, onChange, onShowResult, onBack, earlierPitche
         nameOf={nameOf}
         pitchInfo={pitcherId ? { now: pitchesNow, today: pitchesToday, limit, level, earlier: earlierPitches[pitcherId] ?? 0 } : null}
       />
+      <GameClock game={game} onChange={(patch) => onChange({ ...game, ...patch, updatedAt: Date.now() })} />
       {!state.finished && level === "over" && (
         <p className="pitch-alert over">
           ⚠ {nameOf(pitcherId)}は今日{pitchesToday}球で、球数制限（{limit}球）に達しました。

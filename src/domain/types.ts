@@ -210,6 +210,11 @@ export type Game = {
   pitcherDecisions?: { win?: string; loss?: string };
   /** 1日の球数制限（未指定は70球、0は制限なし） */
   pitchLimit?: number;
+  /** 試合時間（分）。0 または未指定は制限なし */
+  timeLimit?: number;
+  /** プレイボールの時刻・試合終了の時刻（ストップウォッチ） */
+  startedAt?: number;
+  endedAt?: number;
   date: string;
   tournament: string;
   scheduledInnings: number;

@@ -4,6 +4,7 @@ import { categoryForGrade } from "../domain/roster";
 import { moveItem, useDragReorder } from "./useDragReorder";
 import { newId } from "../domain/id";
 import { DEFAULT_PITCH_LIMIT } from "../domain/pitchCount";
+import { defaultTimeLimit, TIME_LIMIT_OPTIONS } from "../domain/gameClock";
 import { POSITION_SHORT, POSITIONS, positionProblems } from "../domain/positions";
 import type { Game, Player, Position, Side, Team, TeamProfile } from "../domain/types";
 
@@ -116,6 +117,7 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
   const [tournament, setTournament] = useState("");
   const [innings, setInnings] = useState(7);
   const [pitchLimit, setPitchLimit] = useState(DEFAULT_PITCH_LIMIT);
+  const [timeLimit, setTimeLimit] = useState(() => defaultTimeLimit(initialCategory));
   const [teams, setTeams] = useState<Record<Side, TeamForm>>(() =>
     initialProfile ? { away: profileForm(initialProfile, initialCategory, false), home: { ...SAMPLE.home } } : SAMPLE,
   );
@@ -127,6 +129,7 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
   const changeCategory = (cat: string, lower = includeLower) => {
     setCategory(cat);
     setIncludeLower(lower);
+    setTimeLimit(defaultTimeLimit(cat));
     setTeams((t) => {
       const next = { ...t };
       for (const side of ["away", "home"] as const) {
@@ -189,6 +192,7 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
       tournament: tournament.trim(),
       scheduledInnings: innings,
       pitchLimit,
+      timeLimit,
       teams: { away: toTeam(teams.away, profiles), home: toTeam(teams.home, profiles) },
       plays: [],
       createdAt: now,
@@ -263,6 +267,17 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
             </select>
           </label>
         </div>
+        <label className="field">
+          試合時間
+          <div className="segmented">
+            {TIME_LIMIT_OPTIONS.map((n) => (
+              <button key={n} className={timeLimit === n ? "seg on" : "seg"} onClick={() => setTimeLimit(n)}>
+                {n ? `${n}分` : "なし"}
+              </button>
+            ))}
+          </div>
+        </label>
+        <small className="muted">試合時間は、5・6年生は90分、4年生以下は80分を最初に選んでいます。試合画面の「プレイボール」でストップウォッチが始まります。</small>
         <small className="muted">球数は同じ日のほかの試合で投げた分も合算し、制限の10球前から注意を出します。大会の規定に合わせてください。</small>
       </section>
 
