@@ -2824,3 +2824,6 @@ button.roster-name {
 .team-cards.reordering li.dragging { outline: 2px solid #f08a24; border-radius: 14px; }
 .team-cards .team-drag { flex: none; width: 40px; height: 48px; display: grid; place-items: center; border-radius: 10px; background: #eef4ee; color: #4f6355; font-size: 20px; touch-action: none; cursor: grab; }
 .team-cards .reorder-row { flex: 1; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid #e3ebe3; border-radius: 14px; background: #fff; }
+.icon-grid.letters { grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.icon-grid.letters .icon-choice { font-size: 18px; font-family: system-ui, sans-serif; }
+.home-team-icon { font-family: system-ui, sans-serif; }

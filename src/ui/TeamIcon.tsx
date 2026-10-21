@@ -2,13 +2,16 @@ import { useState } from "react";
 import type { TeamProfile } from "../domain/types";
 
 export const TEAM_EMOJIS = ["", "⚾", "🔥", "⭐", "⚡", "🏆", "👑", "💎", "🦅", "🐯", "🦁", "🐉", "🦈", "🐺", "🌈", "🍀", "🌸", "☀️"];
+export const TEAM_LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+export const TEAM_DIGITS = Array.from({ length: 10 }, (_, i) => String(i));
+const isLetter = (s?: string) => !!s && /^[A-Z0-9]$/.test(s);
 export const TEAM_COLORS = ["#2f7d4a", "#1f3a68", "#2a7fd4", "#138d75", "#c0392b", "#e67e22", "#d4a017", "#d6457a", "#7d3c98", "#333333"];
 
 /** チームのアイコン（絵文字か、チーム名の1文字目） */
 export function TeamIcon({ team, className = "home-team-icon" }: { team: Pick<TeamProfile, "name" | "icon">; className?: string }) {
   const emoji = team.icon?.emoji;
   return (
-    <span className={emoji ? `${className} emoji` : className} style={{ background: team.icon?.color ?? TEAM_COLORS[0] }} aria-hidden="true">
+    <span className={emoji && !isLetter(emoji) ? `${className} emoji` : className} style={{ background: team.icon?.color ?? TEAM_COLORS[0] }} aria-hidden="true">
       {emoji || (team.name || "？").slice(0, 1)}
     </span>
   );
@@ -37,6 +40,26 @@ export function TeamIconPicker({ team, onSave, onClose }: { team: TeamProfile; o
             {TEAM_EMOJIS.map((e) => (
               <button key={e || "letter"} className={emoji === e ? "icon-choice on" : "icon-choice"} onClick={() => setEmoji(e)} aria-label={e || "チーム名の1文字目"}>
                 {e || (team.name || "？").slice(0, 1)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          アルファベット
+          <div className="icon-grid letters">
+            {TEAM_LETTERS.map((l) => (
+              <button key={l} className={emoji === l ? "icon-choice on" : "icon-choice"} onClick={() => setEmoji(l)} aria-label={`アルファベット ${l}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          数字
+          <div className="icon-grid letters">
+            {TEAM_DIGITS.map((d) => (
+              <button key={d} className={emoji === d ? "icon-choice on" : "icon-choice"} onClick={() => setEmoji(d)} aria-label={`数字 ${d}`}>
+                {d}
               </button>
             ))}
           </div>
