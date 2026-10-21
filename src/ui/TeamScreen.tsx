@@ -8,6 +8,7 @@ import { isActive, playerLabel, teamGradeLabel } from "../domain/roster";
 import { ask } from "./confirm";
 import { PitchingCharts } from "./PitchingCharts";
 import { TeamMembers } from "./TeamMembers";
+import { TeamIcon, TeamIconPicker } from "./TeamIcon";
 
 type Props = {
   team: TeamProfile;
@@ -29,6 +30,7 @@ const RESULT_LABEL = { win: "勝", loss: "負", draw: "分", playing: "途中" }
 
 export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete, onNewGame, onOpenGame, onShare, onOpenPlayer, onBack }: Props) {
   const [editing, setEditing] = useState(false);
+  const [pickingIcon, setPickingIcon] = useState(false);
   const members = useMemo(() => team.players.filter(isActive), [team]);
   const filters = useMemo(() => filtersOf(team, games), [team, games]);
   const [season, setSeason] = useState<string>(() => filters.seasons[0] ?? ALL);
@@ -69,6 +71,10 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
           {season === ALL ? "ALL SEASONS" : `${season} SEASON`}
           {category !== ALL && `・${category}`}
         </p>
+        <button className="team-icon-button" onClick={() => setPickingIcon(true)} aria-label="チームのアイコンを変える">
+          <TeamIcon team={team} className="home-team-icon large" />
+          <small>アイコンを変える</small>
+        </button>
         <h1 className="team-title">{team.name}</h1>
         <p className="verdict">
           {record.win}勝 {record.loss}敗 {record.draw}分
@@ -326,6 +332,16 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
           </button>
         </div>
       </section>
+      {pickingIcon && (
+        <TeamIconPicker
+          team={team}
+          onClose={() => setPickingIcon(false)}
+          onSave={(icon) => {
+            onSave({ ...team, icon, updatedAt: Date.now() });
+            setPickingIcon(false);
+          }}
+        />
+      )}
     </main>
   );
 }

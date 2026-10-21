@@ -74,7 +74,12 @@ export class LocalStorageRepository implements GameRepository {
     const roster = this.getRoster();
     return this.storedTeams()
       .map((t) => syncTeam(t, roster))
-      .sort((a, b) => a.name.localeCompare(b.name, "ja") || (b.season ?? "").localeCompare(a.season ?? ""));
+      .sort(
+        (a, b) =>
+          (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
+          a.name.localeCompare(b.name, "ja") ||
+          (b.season ?? "").localeCompare(a.season ?? ""),
+      );
   }
 
   getTeam(id: string) {

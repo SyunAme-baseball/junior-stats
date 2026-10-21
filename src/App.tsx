@@ -327,6 +327,13 @@ export default function App() {
         if (g) download(`mieru-score-${g.date || "game"}-${g.teams.away.name}-vs-${g.teams.home.name}.json`, exportGame(g));
       }}
       onExportAll={() => download(`mieru-score-backup-${new Date().toISOString().slice(0, 10)}.json`, exportAll(repo))}
+      onReorderTeams={(ids) => {
+        for (const t of repo.listTeams()) {
+          const order = ids.indexOf(t.id);
+          if (order >= 0 && t.order !== order) repo.saveTeam({ ...t, order });
+        }
+        setTeams(repo.listTeams());
+      }}
       onPaste={async () => {
         const text = (await askText("受け取った共有コード（またはリンク）を貼り付けてください。", "", "読み込む", true, "共有コード"))?.trim();
         if (!text) return;

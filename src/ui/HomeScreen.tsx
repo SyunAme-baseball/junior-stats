@@ -6,6 +6,8 @@ import { summarizeSeason } from "../domain/season";
 import type { Game, TeamProfile } from "../domain/types";
 import type { GameSummary } from "../storage/repository";
 import { ask } from "./confirm";
+import { TeamIcon } from "./TeamIcon";
+import { moveItem, useDragReorder } from "./useDragReorder";
 
 type Props = {
   games: GameSummary[];
@@ -24,6 +26,8 @@ type Props = {
   onExportAll: () => void;
   onImport: (json: string) => void;
   onPaste: () => void;
+  /** チームの並び順を保存する（上から順のID） */
+  onReorderTeams: (ids: string[]) => void;
 };
 
 const ALL = "すべて";
@@ -38,7 +42,7 @@ function gradeCounts(t: TeamProfile) {
   return t.maxGrade !== undefined ? `${teamGradeLabel(t.maxGrade)}｜${list}` : list;
 }
 
-export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, rosterCount, onOpenRoster, onOpenTeam, onDelete, onExport, onExportAll, onImport, onPaste }: Props) {
+export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, rosterCount, onOpenRoster, onOpenTeam, onDelete, onExport, onExportAll, onImport, onPaste, onReorderTeams }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const seasons = [...new Set(games.map((g) => g.season ?? "").filter(Boolean))].sort().reverse();
   const [season, setSeason] = useState(seasons[0] ?? ALL);
@@ -71,6 +75,10 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
     }
     return m;
   }, [allGames, teams]);
+
+  // 並び替え中の並び（完了で保存）
+  const [ordering, setOrdering] = useState<TeamProfile[] | null>(null);
+  const drag = useDragReorder<HTMLUListElement>((from, to) => setOrdering((xs) => (xs ? moveItem(xs, from, to) : xs)));
 
   return (
     <>
@@ -153,9 +161,30 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
       <section className="panel">
         <div className="section-heading">
           <h2>わたしたちのチーム</h2>
-          <button className="link-button" onClick={onNewTeam}>
-            ＋ チームを作る
-          </button>
+          <span className="topbar-actions">
+            {ordering ? (
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  onReorderTeams(ordering.map((t) => t.id));
+                  setOrdering(null);
+                }}
+              >
+                完了
+              </button>
+            ) : (
+              <>
+                {teams.length > 1 && (
+                  <button className="link-button" onClick={() => setOrdering(teams)}>
+                    並び替え
+                  </button>
+                )}
+                <button className="link-button" onClick={onNewTeam}>
+                  ＋ チームを作る
+                </button>
+              </>
+            )}
+          </span>
         </div>
         <button className="home-roster" onClick={onOpenRoster}>
           <span className="home-roster-icon" aria-hidden="true">
@@ -169,7 +198,27 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
             ›
           </span>
         </button>
-        {teams.length === 0 ? (
+        {ordering ? (
+          <>
+            <p className="muted small">左の「⋮⋮」を指で押したまま上下に動かして、並べ替えてください。終わったら「完了」を押します。</p>
+            <ul className="team-cards reordering" ref={drag.listRef}>
+              {ordering.map((t, i) => (
+                <li key={t.id} className={drag.dragging === i ? "dragging" : undefined}>
+                  <span className="team-drag" role="button" aria-label={`${t.name}：押したまま上下に動かして並べ替え`} {...drag.handleProps(i)}>
+                    ⋮⋮
+                  </span>
+                  <span className="reorder-row">
+                    <TeamIcon team={t} />
+                    <span className="home-team-name">
+                      <strong>{t.name || "（名前のないチーム）"}</strong>
+                      <small>{gradeCounts(t)}</small>
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : teams.length === 0 ? (
           <p className="empty-state">
             {rosterCount
               ? "「＋ チームを作る」で学年（例：4年生）を選ぶと、名簿から4年生以下の選手が並び、そのままチームを作れます。"
@@ -183,9 +232,7 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
                 <li key={t.id}>
                   <button className="home-team" onClick={() => onOpenTeam(t.id)}>
                     <span className="home-team-head">
-                      <span className="home-team-icon" aria-hidden="true">
-                        {(t.name || "？").slice(0, 1)}
-                      </span>
+                      <TeamIcon team={t} />
                       <span className="home-team-name">
                         <strong>{t.name || "（名前のないチーム）"}</strong>
                         <small>{gradeCounts(t)}</small>

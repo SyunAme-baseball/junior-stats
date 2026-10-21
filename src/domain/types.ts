@@ -32,6 +32,10 @@ export type TeamProfile = {
   players: Player[];
   /** チームの学年（例：4 = 4年生以下のチーム）。作るときに名簿から選手を並べるのに使う */
   maxGrade?: number;
+  /** ホームの「わたしたちのチーム」での並び順（小さいほど上） */
+  order?: number;
+  /** チームのアイコン：絵文字（なければチーム名の1文字目）と背景の色 */
+  icon?: { emoji?: string; color?: string };
   /** カテゴリーごとの前回の打順と守備位置（次の試合の初期値） */
   lastLineups?: Record<string, LineupSlot[]>;
   /** 選手ごとの前回の背番号（次の試合の初期値） */
