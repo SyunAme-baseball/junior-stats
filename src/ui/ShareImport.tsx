@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { replay } from "../domain/engine";
-import { encodePayload, isRosterPayload, MAX_LINK_LENGTH, planRosterImport, remapTeam, teamsInGames, type SharePayload } from "../domain/share";
+import { encodePayload, isPlanPayload, isRosterPayload, MAX_LINK_LENGTH, planRosterImport, remapTeam, teamsInGames, type SharePayload } from "../domain/share";
+import { formTeamName, planTitle, remapPlan, type LineupPlan } from "../domain/plan";
 import { GRADUATED, gradeLabel } from "../domain/categories";
 import { mergeIntoRoster } from "../domain/roster";
 import type { Game, Player, TeamProfile } from "../domain/types";
@@ -28,7 +29,8 @@ export function ShareDialog({ title, payload, onClose }: { title: string; payloa
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const forRoster = isRosterPayload(payload);
-  const fileName = `junior-stats-${forRoster ? "roster" : "games"}-${new Date().toISOString().slice(0, 10)}.json`;
+  const forPlan = isPlanPayload(payload);
+  const fileName = `junior-stats-${forPlan ? "lineup" : forRoster ? "roster" : "games"}-${new Date().toISOString().slice(0, 10)}.json`;
 
   useEffect(() => {
     encodePayload(payload)
@@ -84,12 +86,14 @@ export function ShareDialog({ title, payload, onClose }: { title: string; payloa
       <p className="help">
         {title}
         <br />
-        {forRoster
+        {forPlan
+          ? "受け取った人がリンクを開く（またはコードを貼り付ける）と、このメンバー表（スタメン・ベンチ入り）が入った状態で試合作成の画面が開きます。必要なら日付や相手チームを直して「試合開始」を押すだけです。"
+          : forRoster
           ? "受け取った人がリンクを開く（またはファイルを「ファイルから読み込む」）と、選手名簿とチームを取り込めます。試合の記録は入っていません。名簿を先にそろえておくと、あとで受け取った試合の成績が同じ選手に合算されます。"
           : "受け取った人がリンクを開く（またはファイルを「ファイルから読み込む」）と、試合を取り込めます。取り込んだ試合は、その人の登録チームの成績に合算できます。名簿だけを渡したいときは、名簿の画面の「名簿を共有する」を使ってください。"}
       </p>
       <p className="muted small">
-        {forRoster ? `選手${payload.roster?.length ?? 0}人` : `試合${payload.games.length}件`}・チーム{payload.teams.length}件
+        {forPlan ? "メンバー表1件" : forRoster ? `選手${payload.roster?.length ?? 0}人` : `試合${payload.games.length}件`}・チーム{payload.teams.length}件
         {link && !tooLong && `・リンクの長さ ${link.length.toLocaleString()}文字`}
       </p>
       {tooLong && <p className="notice">データが大きいため、リンクでは送れません。「ファイルで送る」を使ってください。</p>}
@@ -308,6 +312,55 @@ export function RosterImportDialog({ payload, repo, onDone, onClose }: Props) {
       <div className="sheet-actions">
         <button className="primary-button" onClick={run}>
           名簿に取り込む
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** 受け取ったメンバー表を取り込み、試合作成の画面で開く */
+export function PlanImportDialog({
+  payload,
+  repo,
+  onDone,
+  onClose,
+}: {
+  payload: { teams: TeamProfile[]; roster?: Player[]; plans?: LineupPlan[] };
+  repo: GameRepository;
+  onDone: (planId: string, message: string) => void;
+  onClose: () => void;
+}) {
+  const plan = payload.plans![0];
+  const names = (f: LineupPlan["teams"]["away"]) => {
+    if (f.kind === "manual") return f.rows.filter((r) => !r.bench && r.name.trim()).length;
+    return f.rows.filter((r) => r.playerId).length;
+  };
+  const run = () => {
+    const r = planRosterImport(repo.getRoster(), repo.listTeams(), payload.roster ?? [], payload.teams);
+    repo.saveRoster(r.roster);
+    for (const t of r.teams) repo.saveTeam(t);
+    const mapped = remapPlan(plan, r.idMap);
+    // 同じメンバー表をもう一度受け取ったときは上書きする
+    repo.savePlan({ ...mapped, updatedAt: Date.now() });
+    const parts = ["メンバー表を取り込みました"];
+    if (r.added) parts.push(`名簿に選手${r.added}人を追加`);
+    if (r.teamsAdded) parts.push(`チーム${r.teamsAdded}件を登録`);
+    onDone(mapped.id, parts.join("、") + "。内容を確認して「試合開始」を押してください。");
+  };
+  return (
+    <Sheet title="メンバー表を取り込む" onClose={onClose}>
+      <p className="help">送られてきたメンバー表（スタメン・ベンチ入り）です。取り込むと、この内容が入った試合作成の画面が開きます。</p>
+      <ul className="import-games">
+        <li>
+          <strong>{planTitle(plan, payload.teams)}</strong>
+          <span>
+            {(["away", "home"] as const).map((s) => `${s === "away" ? "先攻" : "後攻"} ${formTeamName(plan.teams[s], payload.teams)}（打順${names(plan.teams[s])}人）`).join("・")}
+          </span>
+        </li>
+      </ul>
+      <div className="sheet-actions">
+        <button className="primary-button" onClick={run}>
+          取り込んで試合の準備をする
         </button>
       </div>
     </Sheet>

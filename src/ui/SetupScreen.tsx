@@ -8,16 +8,7 @@ import { defaultTimeLimit, TIME_LIMIT_OPTIONS } from "../domain/gameClock";
 import { POSITION_SHORT, POSITIONS, positionProblems } from "../domain/positions";
 import type { Game, Player, Position, Side, Team, TeamProfile } from "../domain/types";
 
-/** その場で入力するチーム（相手チームなど） */
-/** position が null の打者は指名打者（指）。bench の行は控え選手（打順に入らない）。dhPitcher は打順に入らないピッチャー */
-type ManualRow = { name: string; position: Position | null; bench?: boolean; dhPitcher?: boolean };
-type ManualForm = { kind: "manual"; name: string; rows: ManualRow[] };
-
-/** 登録チーム：打順は名簿から選び、背番号は試合ごとに入れる。控えは背番号を入れた選手だけが出場する */
-type ProfileRow = { playerId: string; number: string; position: Position | null };
-type ProfileForm = { kind: "profile"; teamId: string; rows: ProfileRow[]; benchNumbers: Record<string, string>; pitcherId?: string };
-
-type TeamForm = ManualForm | ProfileForm;
+import type { LineupPlan, ManualForm, ManualRow, ProfileForm, ProfileRow, TeamForm } from "../domain/plan";
 
 const SAMPLE_POSITIONS: Position[] = [8, 4, 6, 1, 2, 3, 5, 7, 9];
 
@@ -93,25 +84,34 @@ type Props = {
   profiles: TeamProfile[];
   /** 登録チームの画面から来たときは、そのチームを先攻にセットしておく */
   initialTeamId?: string;
+  /** 保存したメンバー表から開いたとき */
+  initialPlan?: LineupPlan;
   onCreate: (game: Game) => void;
+  /** メンバー表として保存する（試合はまだ始めない） */
+  onSavePlan: (plan: LineupPlan) => void;
   onCancel?: () => void;
 };
 
-export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Props) {
+export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCreate, onSavePlan, onCancel }: Props) {
   const initialProfile = profiles.find((t) => t.id === initialTeamId) ?? (profiles.length === 1 ? profiles[0] : undefined);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [season, setSeason] = useState(() => new Date().getFullYear().toString());
+  const [date, setDate] = useState(() => plan?.date ?? new Date().toISOString().slice(0, 10));
+  const [season, setSeason] = useState(() => plan?.season ?? new Date().getFullYear().toString());
   // チームの学年（4年生以下のチームなら「4年生」）を最初のカテゴリーにする
-  const initialCategory = categoryForGrade(initialProfile?.maxGrade) ?? "6年生";
+  const initialCategory = plan?.category ?? categoryForGrade(initialProfile?.maxGrade) ?? "6年生";
   const [category, setCategory] = useState(initialCategory);
-  const [includeLower, setIncludeLower] = useState(false);
-  const [tournament, setTournament] = useState("");
-  const [innings, setInnings] = useState(7);
-  const [pitchLimit, setPitchLimit] = useState(DEFAULT_PITCH_LIMIT);
-  const [timeLimit, setTimeLimit] = useState(() => defaultTimeLimit(initialCategory));
-  const [teams, setTeams] = useState<Record<Side, TeamForm>>(() =>
-    initialProfile ? { away: profileForm(initialProfile, initialCategory, false), home: blankManual() } : { away: blankManual(), home: blankManual() },
-  );
+  const [includeLower, setIncludeLower] = useState(plan?.includeLower ?? false);
+  const [tournament, setTournament] = useState(plan?.tournament ?? "");
+  const [innings, setInnings] = useState(plan?.innings ?? 7);
+  const [pitchLimit, setPitchLimit] = useState(plan?.pitchLimit ?? DEFAULT_PITCH_LIMIT);
+  const [timeLimit, setTimeLimit] = useState(() => plan?.timeLimit ?? defaultTimeLimit(initialCategory));
+  const [teams, setTeams] = useState<Record<Side, TeamForm>>(() => {
+    if (plan) {
+      // 削除された登録チームのメンバー表は、その場で入力する形に戻す
+      const ok = (f: TeamForm) => (f.kind === "manual" || profiles.some((t) => t.id === f.teamId) ? f : blankManual());
+      return { away: ok(plan.teams.away), home: ok(plan.teams.home) };
+    }
+    return initialProfile ? { away: profileForm(initialProfile, initialCategory, false), home: blankManual() } : { away: blankManual(), home: blankManual() };
+  });
 
   const profileOf = (form: TeamForm) => (form.kind === "profile" ? profiles.find((t) => t.id === form.teamId) : undefined);
   const update = (side: Side, form: TeamForm) => setTeams((t) => ({ ...t, [side]: form }));
@@ -172,6 +172,24 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
 
   const usesProfile = teams.away.kind === "profile" || teams.home.kind === "profile";
 
+  const savePlan = () => {
+    const now = Date.now();
+    onSavePlan({
+      id: plan?.id ?? newId(),
+      date,
+      season,
+      category,
+      includeLower,
+      tournament,
+      innings,
+      pitchLimit,
+      timeLimit,
+      teams,
+      createdAt: plan?.createdAt ?? now,
+      updatedAt: now,
+    });
+  };
+
   const start = () => {
     const now = Date.now();
     onCreate({
@@ -196,7 +214,7 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
       <header className="header">
         <div>
           <p className="eyebrow">NEW GAME</p>
-          <h1>試合を作成</h1>
+          <h1>{plan ? "メンバー表" : "試合を作成"}</h1>
         </div>
         {onCancel && (
           <button className="secondary-button" onClick={onCancel}>
@@ -327,6 +345,12 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
       <button className="primary-button big" disabled={problems.length > 0} onClick={start}>
         試合開始
       </button>
+      <button className="secondary-button plan-save" onClick={savePlan}>
+        {plan ? "メンバー表を上書き保存（試合はまだ始めない）" : "メンバー表として保存（試合はまだ始めない）"}
+      </button>
+      <p className="muted small">
+        試合の前にスタメン・ベンチ入りを決めておくときに使います。保存したメンバー表はホームの「予定の試合（メンバー表）」に入り、スコアをつける人にコードで送れます。
+      </p>
     </main>
   );
 }

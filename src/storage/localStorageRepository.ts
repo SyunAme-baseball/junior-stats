@@ -1,4 +1,5 @@
 import type { Game, Player, TeamProfile } from "../domain/types";
+import type { LineupPlan } from "../domain/plan";
 import { normalizeTeam } from "../domain/categories";
 import { mergeIntoRoster, syncTeam } from "../domain/roster";
 import { isGame, normalizeGame, type GameRepository, type GameSummary } from "./repository";
@@ -8,6 +9,7 @@ const INDEX_KEY = `${PREFIX}index`;
 const CURRENT_KEY = `${PREFIX}current`;
 const TEAMS_KEY = `${PREFIX}teams`;
 const ROSTER_KEY = `${PREFIX}roster`;
+const PLANS_KEY = `${PREFIX}plans`;
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -115,6 +117,18 @@ export class LocalStorageRepository implements GameRepository {
       TEAMS_KEY,
       this.storedTeams().map((t) => syncTeam({ ...t, players: t.players.filter((p) => !removed.has(p.id)) }, players)),
     );
+  }
+
+  listPlans(): LineupPlan[] {
+    return read<LineupPlan[]>(PLANS_KEY, []).sort((a, b) => (a.date || "").localeCompare(b.date || "") || a.createdAt - b.createdAt);
+  }
+
+  savePlan(plan: LineupPlan) {
+    write(PLANS_KEY, [plan, ...read<LineupPlan[]>(PLANS_KEY, []).filter((p) => p.id !== plan.id)]);
+  }
+
+  removePlan(id: string) {
+    write(PLANS_KEY, read<LineupPlan[]>(PLANS_KEY, []).filter((p) => p.id !== id));
   }
 
   getCurrentId() {

@@ -26,6 +26,11 @@ type Props = {
   onExportAll: () => void;
   onImport: (json: string) => void;
   onPaste: () => void;
+  /** 保存したメンバー表（予定の試合） */
+  plans: { id: string; title: string }[];
+  onOpenPlan: (id: string) => void;
+  onSharePlan: (id: string) => void;
+  onDeletePlan: (id: string) => void;
   /** チームの並び順を保存する（上から順のID） */
   onReorderTeams: (ids: string[]) => void;
 };
@@ -42,7 +47,7 @@ function gradeCounts(t: TeamProfile) {
   return t.maxGrade !== undefined ? `${teamGradeLabel(t.maxGrade)}｜${list}` : list;
 }
 
-export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, rosterCount, onOpenRoster, onOpenTeam, onDelete, onExport, onExportAll, onImport, onPaste, onReorderTeams }: Props) {
+export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, rosterCount, onOpenRoster, onOpenTeam, onDelete, onExport, onExportAll, onImport, onPaste, plans, onOpenPlan, onSharePlan, onDeletePlan, onReorderTeams }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const seasons = [...new Set(games.map((g) => g.season ?? "").filter(Boolean))].sort().reverse();
   const [season, setSeason] = useState(seasons[0] ?? ALL);
@@ -147,6 +152,35 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
       <button className="home-cta" onClick={onNew}>
         ＋ 新しい試合をつける
       </button>
+
+      {plans.length > 0 && (
+        <section className="panel">
+          <h2>予定の試合（メンバー表）</h2>
+          <ul className="plan-list">
+            {plans.map((p) => (
+              <li key={p.id}>
+                <button className="plan-open" onClick={() => onOpenPlan(p.id)}>
+                  <strong>{p.title}</strong>
+                  <small>開いて確認・修正し、「試合開始」で始めます</small>
+                </button>
+                <span className="plan-actions">
+                  <button className="secondary-button" onClick={() => onSharePlan(p.id)}>
+                    共有
+                  </button>
+                  <button
+                    className="link-button danger"
+                    onClick={async () => {
+                      if (await ask(`メンバー表「${p.title}」を削除します。`, "削除する")) onDeletePlan(p.id);
+                    }}
+                  >
+                    削除
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {seasons.length > 0 && (
         <div className="segmented season-tabs">

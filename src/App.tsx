@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { pitchesEarlierToday } from "./domain/pitchCount";
-import { decodePayload, isRosterPayload, makePayload, makeRosterPayload, type SharePayload } from "./domain/share";
+import { decodePayload, isPlanPayload, isRosterPayload, makePayload, makePlanPayload, makeRosterPayload, type SharePayload } from "./domain/share";
+import { planTitle, type LineupPlan } from "./domain/plan";
 import type { Game, Player, TeamProfile } from "./domain/types";
 import { exportAll, exportGame, importData, normalizeGame } from "./storage/repository";
 import { LocalStorageRepository } from "./storage/localStorageRepository";
@@ -8,7 +9,7 @@ import { GameScreen } from "./ui/GameScreen";
 import { HomeScreen } from "./ui/HomeScreen";
 import { ResultScreen } from "./ui/ResultScreen";
 import { SetupScreen } from "./ui/SetupScreen";
-import { ImportDialog, RosterImportDialog, ShareDialog } from "./ui/ShareImport";
+import { ImportDialog, PlanImportDialog, RosterImportDialog, ShareDialog } from "./ui/ShareImport";
 import { TeamScreen } from "./ui/TeamScreen";
 import { RosterScreen } from "./ui/RosterScreen";
 import { PlayerScreen } from "./ui/PlayerScreen";
@@ -19,7 +20,7 @@ import "./App.css";
 
 type View =
   | { name: "home" }
-  | { name: "setup"; teamId?: string }
+  | { name: "setup"; teamId?: string; planId?: string }
   | { name: "game" }
   | { name: "result" }
   | { name: "team"; id: string }
@@ -41,6 +42,7 @@ export default function App() {
   const [games, setGames] = useState(() => repo.list());
   const [teams, setTeams] = useState(() => repo.listTeams());
   const [roster, setRoster] = useState(() => repo.getRoster());
+  const [plans, setPlans] = useState(() => repo.listPlans());
   // ホームのチーム成績・スコア表示用（一覧が変わったら読み直す）
   const allGames = useMemo(() => repo.allGames(), [repo, games]);
   const [game, setGame] = useState<Game | null>(() => {
@@ -48,7 +50,7 @@ export default function App() {
     return id ? repo.get(id) : null;
   });
   const [view, setView] = useState<View>(() => (game ? { name: "game" } : { name: "home" }));
-  const [importing, setImporting] = useState<{ games: Game[]; teams: TeamProfile[]; roster?: Player[] } | null>(null);
+  const [importing, setImporting] = useState<{ games: Game[]; teams: TeamProfile[]; roster?: Player[]; plans?: LineupPlan[] } | null>(null);
   const [sharing, setSharing] = useState<{ title: string; payload: SharePayload } | null>(null);
   const [toast, setToast] = useState("");
 
@@ -58,7 +60,7 @@ export default function App() {
     if (!m) return;
     history.replaceState(null, "", location.pathname + location.search);
     decodePayload(m[1])
-      .then((p) => setImporting({ games: p.games.map(normalizeGame), teams: p.teams, roster: p.roster }))
+      .then((p) => setImporting({ games: p.games.map(normalizeGame), teams: p.teams, roster: p.roster, plans: p.plans }))
       .catch(() => setToast("共有リンクを読み取れませんでした。リンクが途中で切れていないか確認してください。"));
   }, []);
 
@@ -137,7 +139,23 @@ export default function App() {
           }}
         />
       )}
-      {importing && !isRosterPayload(importing) && (
+      {importing && isPlanPayload(importing) && (
+        <PlanImportDialog
+          payload={importing}
+          repo={repo}
+          onClose={() => setImporting(null)}
+          onDone={(planId, msg) => {
+            setImporting(null);
+            setTeams(repo.listTeams());
+            setRoster(repo.getRoster());
+            setPlans(repo.listPlans());
+            setToast(msg);
+            setReturnTo({ name: "home" });
+            setView({ name: "setup", planId });
+          }}
+        />
+      )}
+      {importing && !isRosterPayload(importing) && !isPlanPayload(importing) && (
         <ImportDialog
           payload={importing}
           repo={repo}
@@ -175,11 +193,24 @@ export default function App() {
   if (view.name === "setup")
     return (
       <SetupScreen
+        key={view.planId ?? "new"}
         profiles={teams}
         initialTeamId={view.teamId}
-        onCancel={games.length || teams.length ? () => setView(returnTo) : undefined}
+        initialPlan={view.planId ? plans.find((p) => p.id === view.planId) : undefined}
+        onSavePlan={(plan) => {
+          repo.savePlan(plan);
+          setPlans(repo.listPlans());
+          setToast("メンバー表を保存しました。ホームの「予定の試合（メンバー表）」から開けます。");
+          setView({ name: "home" });
+        }}
+        onCancel={() => setView(returnTo)}
         onCreate={(g) => {
           update(g);
+          // メンバー表から始めた試合は、メンバー表を片付ける
+          if (view.planId) {
+            repo.removePlan(view.planId);
+            setPlans(repo.listPlans());
+          }
           // 次の試合の初期値として、カテゴリーごとの打順・守備位置と、選手ごとの背番号を覚えておく
           for (const side of ["away", "home"] as const) {
             const t = g.teams[side];
@@ -327,6 +358,19 @@ export default function App() {
         if (g) download(`mieru-score-${g.date || "game"}-${g.teams.away.name}-vs-${g.teams.home.name}.json`, exportGame(g));
       }}
       onExportAll={() => download(`mieru-score-backup-${new Date().toISOString().slice(0, 10)}.json`, exportAll(repo))}
+      plans={plans.map((p) => ({ id: p.id, title: planTitle(p, teams) }))}
+      onOpenPlan={(id) => {
+        setReturnTo({ name: "home" });
+        setView({ name: "setup", planId: id });
+      }}
+      onSharePlan={(id) => {
+        const plan = plans.find((p) => p.id === id);
+        if (plan) setSharing({ title: `メンバー表：${planTitle(plan, teams)}`, payload: makePlanPayload(plan, repo.listTeams(), repo.getRoster()) });
+      }}
+      onDeletePlan={(id) => {
+        repo.removePlan(id);
+        setPlans(repo.listPlans());
+      }}
       onReorderTeams={(ids) => {
         for (const t of repo.listTeams()) {
           const order = ids.indexOf(t.id);
@@ -341,7 +385,7 @@ export default function App() {
           if (text.startsWith("{")) setImporting(importData(text));
           else {
             const p = await decodePayload(text.replace(/^.*#import=/, ""));
-            setImporting({ games: p.games.map(normalizeGame), teams: p.teams, roster: p.roster });
+            setImporting({ games: p.games.map(normalizeGame), teams: p.teams, roster: p.roster, plans: p.plans });
           }
         } catch {
           setToast("共有コードを読み取れませんでした。途中で切れていないか確認してください。");

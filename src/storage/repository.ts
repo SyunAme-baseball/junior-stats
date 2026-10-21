@@ -2,6 +2,7 @@
 // 将来クラウド同期にする場合は、同じインターフェースの実装を差し替える。
 
 import { normalizeTeam } from "../domain/categories";
+import type { LineupPlan } from "../domain/plan";
 import type { Game, Player, TeamProfile } from "../domain/types";
 
 export type GameSummary = Pick<Game, "id" | "date" | "tournament" | "updatedAt" | "season"> & {
@@ -27,6 +28,10 @@ export interface GameRepository {
   getRoster(): Player[];
   /** 名簿を保存し、各チームの選手の名前・学年もそろえる */
   saveRoster(players: Player[]): void;
+  /** メンバー表（予定の試合） */
+  listPlans(): LineupPlan[];
+  savePlan(plan: LineupPlan): void;
+  removePlan(id: string): void;
 }
 
 export function isGame(value: unknown): value is Game {
@@ -64,7 +69,7 @@ export function exportAll(repo: GameRepository): string {
 }
 
 /** 試合1件のファイルと、全データのバックアップのどちらも読み込める */
-export function importData(json: string): { games: Game[]; teams: TeamProfile[]; roster?: Player[] } {
+export function importData(json: string): { games: Game[]; teams: TeamProfile[]; roster?: Player[]; plans?: LineupPlan[] } {
   const parsed = JSON.parse(json) as Partial<Backup>;
   const kind = (parsed as { kind?: string })?.kind;
   if ((kind === "mieru-score-backup" || kind === "mieru-score-share") && Array.isArray(parsed.games) && Array.isArray(parsed.teams)) {
@@ -72,6 +77,7 @@ export function importData(json: string): { games: Game[]; teams: TeamProfile[];
       games: parsed.games.filter(isGame).map(normalizeGame),
       teams: parsed.teams.map(normalizeTeam),
       roster: Array.isArray(parsed.roster) ? parsed.roster : undefined,
+      plans: Array.isArray((parsed as { plans?: unknown }).plans) ? (parsed as { plans: LineupPlan[] }).plans : undefined,
     };
   }
   if (isGame(parsed)) return { games: [normalizeGame(parsed)], teams: [] };

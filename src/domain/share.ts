@@ -2,9 +2,10 @@
 // 受け取った試合を自分の登録チームの成績として取り込むための選手IDの付け替え。
 
 import type { Game, Play, Player, TeamProfile } from "./types";
+import { planTeamIds, type LineupPlan } from "./plan";
 
 /** 試合の共有は games、名簿の共有は roster（と、その選手を使うチーム）を入れる */
-export type SharePayload = { kind: "mieru-score-share"; v: 1; teams: TeamProfile[]; games: Game[]; roster?: Player[] };
+export type SharePayload = { kind: "mieru-score-share"; v: 1; teams: TeamProfile[]; games: Game[]; roster?: Player[]; plans?: LineupPlan[] };
 
 export function makePayload(games: Game[], profiles: TeamProfile[]): SharePayload {
   const ids = new Set(games.flatMap((g) => [g.teams.away.id, g.teams.home.id]));
@@ -18,7 +19,17 @@ export function makeRosterPayload(roster: Player[], profiles: TeamProfile[]): Sh
   return { kind: "mieru-score-share", v: 1, teams, games: [], roster };
 }
 
-export const isRosterPayload = (p: { games: Game[]; roster?: Player[] }) => p.games.length === 0 && !!p.roster?.length;
+export const isRosterPayload = (p: { games: Game[]; roster?: Player[]; plans?: LineupPlan[] }) => p.games.length === 0 && !!p.roster?.length && !p.plans?.length;
+
+/** メンバー表の共有：メンバー表と、そこに出てくる登録チーム・選手だけを送る */
+export function makePlanPayload(plan: LineupPlan, profiles: TeamProfile[], roster: Player[]): SharePayload {
+  const ids = planTeamIds(plan);
+  const teams = profiles.filter((t) => ids.includes(t.id)).map(({ lastLineups: _l, lastNumbers: _n, order: _o, ...t }) => t);
+  const playerIds = new Set(teams.flatMap((t) => t.players.map((p) => p.id)));
+  return { kind: "mieru-score-share", v: 1, teams, games: [], roster: roster.filter((p) => playerIds.has(p.id)), plans: [plan] };
+}
+
+export const isPlanPayload = (p: { plans?: LineupPlan[] }) => !!p.plans?.length;
 
 export type RosterImport = {
   roster: Player[];
@@ -28,6 +39,8 @@ export type RosterImport = {
   /** 同じ名前の選手がすでにいたので、新しく加えなかった人数 */
   matched: number;
   teamsAdded: number;
+  /** 送り主の選手ID → この端末の選手ID */
+  idMap: Map<string, string>;
 };
 
 /**
@@ -78,7 +91,7 @@ export function planRosterImport(localRoster: Player[], localTeams: TeamProfile[
       teamsAdded += 1;
     }
   }
-  return { roster, teams, added, updated, matched, teamsAdded };
+  return { roster, teams, added, updated, matched, teamsAdded, idMap };
 }
 
 function toBase64Url(bytes: Uint8Array): string {

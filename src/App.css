@@ -2827,3 +2827,12 @@ button.roster-name {
 .icon-grid.letters { grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .icon-grid.letters .icon-choice { font-size: 18px; font-family: system-ui, sans-serif; }
 .home-team-icon { font-family: system-ui, sans-serif; }
+
+/* 予定の試合（メンバー表） */
+.plan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.plan-list li { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #e3ebe3; border-radius: 14px; background: #fbfdfb; }
+.plan-open { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 0; color: inherit; cursor: pointer; }
+.plan-open strong { display: block; font-size: 1rem; }
+.plan-open small { display: block; color: #5b6b5e; margin-top: 2px; }
+.plan-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.plan-save { width: 100%; margin-top: 10px; }
