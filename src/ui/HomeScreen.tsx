@@ -95,21 +95,35 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
         </div>
       </header>
     <main className="app home">
+      {games.length === 0 && teams.length === 0 && !rosterCount && (
+        <section className="panel welcome-panel">
+          <h2>はじめに：選手名簿を用意しましょう</h2>
+          <p className="muted">成績は名簿の選手ごとにたまっていきます。どちらかを選んでください。</p>
+          <button className="welcome-choice" onClick={onOpenRoster}>
+            <strong>① 新しく名簿を作る</strong>
+            <small>チームで最初に使う人（指導者・スコア係）向け。選手の名前と学年を入れます。</small>
+          </button>
+          <button className="welcome-choice" onClick={onPaste}>
+            <strong>② 名簿を引き継ぐ（コードを貼り付け）</strong>
+            <small>ほかの人から名簿の共有コードを受け取った人向け。リンクで受け取った場合は、そのリンクをタップするだけで取り込めます。</small>
+          </button>
+          <p className="muted small">
+            ファイルで受け取った場合は{" "}
+            <button className="link-button small" onClick={() => fileRef.current?.click()}>
+              ファイルから読み込む
+            </button>
+            。まずは見てみたい場合は{" "}
+            <button className="link-button small" onClick={onDemo}>
+              サンプルを入れて試す
+            </button>
+            （あとで削除できます）。
+          </p>
+        </section>
+      )}
+
       <button className="home-cta" onClick={onNew}>
         ＋ 新しい試合をつける
       </button>
-
-      {games.length === 0 && teams.length === 0 && (
-        <section className="panel demo-panel">
-          <h2>まずは触ってみる</h2>
-          <p className="muted">
-            サンプルのチーム（サンプル少年団・6年生）と、終わった試合を1つ入れます。試合結果・選手成績・シーズン成績の見え方を確認したら、チーム画面から削除できます。
-          </p>
-          <button className="secondary-button" onClick={onDemo}>
-            サンプルを入れて試す
-          </button>
-        </section>
-      )}
 
       {seasons.length > 0 && (
         <div className="segmented season-tabs">

@@ -2787,3 +2787,11 @@ button.roster-name {
 .game-clock.over .clock-sub { color: #b42318; font-weight: 700; }
 .game-clock.ended .clock-main { font-size: 1rem; flex: 1; }
 .link-button.small { font-size: 0.8rem; }
+
+/* はじめて開いたときの案内 */
+.welcome-panel { border: 2px solid #f08a24; }
+.welcome-panel h2 { margin-bottom: 4px; }
+.welcome-choice { display: block; width: 100%; text-align: left; margin-top: 10px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid #cfe0d2; background: #f6faf6; color: inherit; cursor: pointer; }
+.welcome-choice strong { display: block; font-size: 1.02rem; color: #1f3b2a; }
+.welcome-choice small { display: block; margin-top: 4px; color: #4f6355; line-height: 1.45; }
+.welcome-panel .muted.small { margin-top: 12px; }
