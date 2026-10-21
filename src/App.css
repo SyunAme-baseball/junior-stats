@@ -2795,3 +2795,7 @@ button.roster-name {
 .welcome-choice strong { display: block; font-size: 1.02rem; color: #1f3b2a; }
 .welcome-choice small { display: block; margin-top: 4px; color: #4f6355; line-height: 1.45; }
 .welcome-panel .muted.small { margin-top: 12px; }
+.welcome-step + .welcome-step { margin-top: 18px; padding-top: 16px; border-top: 1px dashed #cfe0d2; }
+.welcome-step.done h2 { color: #2a7343; }
+.welcome-step.later { opacity: 0.55; }
+.welcome-choice:disabled { cursor: default; }

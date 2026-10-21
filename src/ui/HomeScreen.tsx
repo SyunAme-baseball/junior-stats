@@ -94,25 +94,45 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
         </div>
       </header>
     <main className="app home">
-      {games.length === 0 && teams.length === 0 && !rosterCount && (
+      {teams.length === 0 && (
         <section className="panel welcome-panel">
-          <h2>はじめに：選手名簿を用意しましょう</h2>
-          <p className="muted">成績は名簿の選手ごとにたまっていきます。どちらかを選んでください。</p>
-          <button className="welcome-choice" onClick={onOpenRoster}>
-            <strong>① 新しく名簿を作る</strong>
-            <small>チームで最初に使う人（指導者・スコア係）向け。選手の名前と学年を入れます。</small>
-          </button>
-          <button className="welcome-choice" onClick={onPaste}>
-            <strong>② 名簿を引き継ぐ（コードを貼り付け）</strong>
-            <small>ほかの人から名簿の共有コードを受け取った人向け。リンクで受け取った場合は、そのリンクをタップするだけで取り込めます。</small>
-          </button>
-          <p className="muted small">
-            ファイルで受け取った場合は{" "}
-            <button className="link-button small" onClick={() => fileRef.current?.click()}>
-              ファイルから読み込む
+          <div className={rosterCount ? "welcome-step done" : "welcome-step"}>
+            <h2>{rosterCount ? "✓ はじめに：選手名簿を用意しました" : "はじめに：選手名簿を用意しましょう"}</h2>
+            {rosterCount ? (
+              <p className="muted">
+                名簿に{rosterCount}人います。追加や学年の変更は、下の「名簿」からいつでもできます。
+              </p>
+            ) : (
+              <>
+                <p className="muted">成績は名簿の選手ごとにたまっていきます。どちらかを選んでください。</p>
+                <button className="welcome-choice" onClick={onOpenRoster}>
+                  <strong>① 新しく名簿を作る</strong>
+                  <small>チームで最初に使う人（指導者・スコア係）向け。選手の名前と学年を入れます。</small>
+                </button>
+                <button className="welcome-choice" onClick={onPaste}>
+                  <strong>② 名簿を引き継ぐ（コードを貼り付け）</strong>
+                  <small>ほかの人から名簿の共有コードを受け取った人向け。リンクで受け取った場合は、そのリンクをタップするだけで取り込めます。</small>
+                </button>
+                <p className="muted small">
+                  ファイルで受け取った場合は{" "}
+                  <button className="link-button small" onClick={() => fileRef.current?.click()}>
+                    ファイルから読み込む
+                  </button>
+                  。
+                </p>
+              </>
+            )}
+          </div>
+          <div className={rosterCount ? "welcome-step" : "welcome-step later"}>
+            <h2>つぎに：チームを登録しましょう</h2>
+            <p className="muted">
+              <strong>学年ごとにチームを作成できます</strong>（例：6年生チーム、4年生以下チーム）。学年を選ぶと、名簿からその学年までの選手が並び、そのままチームを作れます。試合の成績はチームごとにたまります。
+            </p>
+            <button className="welcome-choice" onClick={onNewTeam} disabled={!rosterCount}>
+              <strong>③ チームを作る</strong>
+              <small>{rosterCount ? "学年を選んで、チームに入れる選手を確認します。" : "名簿に選手を入れると押せるようになります。"}</small>
             </button>
-            。
-          </p>
+          </div>
         </section>
       )}
 
