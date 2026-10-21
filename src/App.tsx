@@ -11,6 +11,7 @@ import { SetupScreen } from "./ui/SetupScreen";
 import { ImportDialog, RosterImportDialog, ShareDialog } from "./ui/ShareImport";
 import { TeamScreen } from "./ui/TeamScreen";
 import { RosterScreen } from "./ui/RosterScreen";
+import { PlayerScreen } from "./ui/PlayerScreen";
 import { TeamMembers } from "./ui/TeamMembers";
 import { isActive } from "./domain/roster";
 import { askText, ConfirmHost } from "./ui/confirm";
@@ -23,7 +24,8 @@ type View =
   | { name: "result" }
   | { name: "team"; id: string }
   | { name: "newTeam" }
-  | { name: "roster"; back: View };
+  | { name: "roster"; back: View }
+  | { name: "player"; id: string; back: View };
 
 function download(filename: string, text: string) {
   const blob = new Blob([text], { type: "application/json" });
@@ -210,6 +212,16 @@ export default function App() {
       />
     );
 
+  if (view.name === "player") {
+    // 名簿にいない選手（合同チームの他チームの選手など）は、チームや試合の名簿から探す
+    const all = repo.allGames();
+    const player =
+      roster.find((p) => p.id === view.id) ??
+      teams.flatMap((t) => t.players).find((p) => p.id === view.id) ??
+      all.flatMap((g) => [...g.teams.away.roster, ...g.teams.home.roster]).find((p) => p.id === view.id);
+    if (player) return <PlayerScreen player={player} games={all} onBack={() => setView(view.back)} />;
+  }
+
   if (view.name === "result" && game) return <ResultScreen game={game} onChange={update} onBack={() => setView({ name: "game" })} />;
 
   if (view.name === "roster")
@@ -226,6 +238,7 @@ export default function App() {
             for (const t of repo.listTeams()) if (teamIds.includes(t.id)) repo.saveTeam({ ...t, players: [...t.players, player], updatedAt: Date.now() });
             setTeams(repo.listTeams());
           }}
+          onOpenPlayer={(id) => setView({ name: "player", id, back: view })}
           onShare={() =>
             setSharing({ title: `選手名簿（${roster.filter(isActive).length}人）`, payload: makeRosterPayload(repo.getRoster(), repo.listTeams()) })
           }
@@ -276,6 +289,7 @@ export default function App() {
             setView({ name: "setup", teamId: team.id });
           }}
           onOpenGame={(id) => open(id, view)}
+          onOpenPlayer={(id) => setView({ name: "player", id, back: view })}
           onShare={() =>
             share(
               `${team.name}の全試合`,

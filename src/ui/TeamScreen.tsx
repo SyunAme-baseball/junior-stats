@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { gradeLabel } from "../domain/categories";
 import { fmtKbb, fmtPct, fmtRatio, strikeRate, whip } from "../domain/pitchingMetrics";
 import { battingAverage, inningsPitched } from "../domain/engine";
-import { filtersOf, summarizeSeason, winningPct } from "../domain/season";
+import { filtersOf, onBasePct, summarizeSeason, winningPct } from "../domain/season";
 import type { Game, Player, TeamProfile } from "../domain/types";
 import { isActive, playerLabel, teamGradeLabel } from "../domain/roster";
 import { ask } from "./confirm";
@@ -19,13 +19,15 @@ type Props = {
   onNewGame: () => void;
   onOpenGame: (id: string) => void;
   onShare: () => void;
+  /** 選手の個人総合成績を開く */
+  onOpenPlayer: (playerId: string) => void;
   onBack: () => void;
 };
 
 const ALL = "すべて";
 const RESULT_LABEL = { win: "勝", loss: "負", draw: "分", playing: "途中" } as const;
 
-export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete, onNewGame, onOpenGame, onShare, onBack }: Props) {
+export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete, onNewGame, onOpenGame, onShare, onOpenPlayer, onBack }: Props) {
   const [editing, setEditing] = useState(false);
   const members = useMemo(() => team.players.filter(isActive), [team]);
   const filters = useMemo(() => filtersOf(team, games), [team, games]);
@@ -72,7 +74,7 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
           {record.win}勝 {record.loss}敗 {record.draw}分
         </p>
         <p className="muted light">
-          勝率 {winningPct(record.win, record.loss)}　得点 {totals.runs}　失点 {totals.allowed}　安打 {totals.hits}　盗塁 {totals.sb}
+          勝率 {winningPct(record.win, record.loss)}　得点 {totals.runs}　失点 {totals.allowed}　安打 {totals.hits}　長打 {totals.xbh}（本塁打 {totals.hr}）　盗塁 {totals.sb}　失策 {totals.errors}
         </p>
       </section>
 
@@ -176,12 +178,14 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
 
       <section className="panel">
         <h2>打撃成績（通算）</h2>
+        <p className="muted small">選手名を押すと、チームやカテゴリーに関係なく合計した個人総合成績が見られます。</p>
         <div className="table-scroll">
           <table className="stats-table">
             <thead>
               <tr>
                 <th>選手</th>
                 <th>打率</th>
+                <th>出塁率</th>
                 <th>試合</th>
                 <th>打席</th>
                 <th>打数</th>
@@ -204,8 +208,13 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
             <tbody>
               {summary.batting.map((b) => (
                 <tr key={b.playerId}>
-                  <th>{nameOf(b.playerId)}</th>
+                  <th>
+                    <button className="link-button player-link" onClick={() => onOpenPlayer(b.playerId)}>
+                      {nameOf(b.playerId)}
+                    </button>
+                  </th>
                   <td>{battingAverage(b)}</td>
+                  <td>{onBasePct(b)}</td>
                   <td>{b.games}</td>
                   <td>{b.pa}</td>
                   <td>{b.ab}</td>
@@ -261,7 +270,11 @@ export function TeamScreen({ team, roster, onOpenRoster, games, onSave, onDelete
               <tbody>
                 {summary.pitching.map((p) => (
                   <tr key={p.playerId}>
-                    <th>{nameOf(p.playerId)}</th>
+                    <th>
+                      <button className="link-button player-link" onClick={() => onOpenPlayer(p.playerId)}>
+                        {nameOf(p.playerId)}
+                      </button>
+                    </th>
                     <td>{p.games}</td>
                     <td>{p.w}</td>
                     <td>{p.l}</td>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultMoves } from "./results";
 import { replay } from "./engine";
-import { summarizeSeason, winningPct } from "./season";
+import { onBasePct, summarizePlayer, summarizeSeason, winningPct } from "./season";
 import type { Game, Play, Position, ResultCode, TeamProfile } from "./types";
 
 const players = Array.from({ length: 9 }, (_, i) => ({ id: `p${i + 1}`, name: `選手${i + 1}` }));
@@ -47,5 +47,40 @@ describe("シーズン通算", () => {
     const pit = sum.pitching.find((p) => p.playerId === "p1")!;
     expect(pit).toMatchObject({ games: 2, w: 1, l: 1, outs: 6 });
     expect(sum.totals).toMatchObject({ runs: 1, allowed: 1, sb: 1 });
+  });
+});
+
+describe("個人総合成績", () => {
+  it("別のチーム・カテゴリーの試合も、同じ選手IDなら合計する", () => {
+    // 試合1：6年生カテゴリー（フェニックス）で p1 が本塁打
+    let g1 = add({ ...game("a", "away"), category: "6年生" }, "home_run");
+    g1 = k3(k3(g1));
+    // 試合2：5年生カテゴリーの別チームで p1 が四球
+    const g2base = game("bb", "away");
+    g2base.teams.away = { ...g2base.teams.away, id: "my5", name: "フェニックス5年" };
+    let g2 = add({ ...g2base, category: "5年生" }, "walk");
+    g2 = k3(k3(g2));
+    const sum = summarizePlayer("p1", [g1, g2]);
+    expect(sum.total.batting).toMatchObject({ games: 2, pa: 2, ab: 1, h: 1, hr: 1, bb: 1 });
+    expect(onBasePct(sum.total.batting!)).toBe("1.000");
+    expect(sum.byCategory.map((l) => l.label)).toEqual(["6年生", "5年生"]);
+    expect(sum.byTeam.map((l) => l.label)).toEqual(["フェニックス", "フェニックス5年"]);
+    // p1 は両方の試合で投手（試合2は0-0の引き分け）
+    expect(sum.total.pitching).toMatchObject({ games: 2, w: 1 });
+  });
+
+  it("出塁率と、チームの長打・失策の合計", () => {
+    expect(onBasePct({ h: 3, ab: 10, bb: 1, hbp: 1, sf: 0 })).toBe(".417");
+    expect(onBasePct({ h: 0, ab: 0, bb: 0, hbp: 0, sf: 0 })).toBe("—");
+    let g = add(game("a", "away"), "double");
+    g = add(g, "home_run");
+    g = k3(g);
+    // 1回裏：相手の打者がエラーで出塁＝守っているこちらの失策
+    g = add(g, "error");
+    g = k3(g);
+    const sum = summarizeSeason(profile, [g]);
+    expect(sum.totals).toMatchObject({ xbh: 2, hr: 1, errors: 1 });
+    const opp = summarizeSeason({ ...profile, id: "opp-a" }, [g]);
+    expect(opp.totals.errors).toBe(0);
   });
 });

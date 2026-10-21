@@ -2799,3 +2799,8 @@ button.roster-name {
 .welcome-step.done h2 { color: #2a7343; }
 .welcome-step.later { opacity: 0.55; }
 .welcome-choice:disabled { cursor: default; }
+
+/* 個人総合成績 */
+.stats-table tr.total-row th, .stats-table tr.total-row td { font-weight: 800; background: #f1f7f1; }
+.stats-table .player-link { padding: 0; font-weight: 700; text-align: left; white-space: nowrap; }
+.roster-list .stats-link { white-space: nowrap; }

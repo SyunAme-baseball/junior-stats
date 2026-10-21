@@ -21,7 +21,7 @@ export type SeasonSummary = {
   batting: SeasonBatting[];
   pitching: SeasonPitching[];
   /** チーム合計 */
-  totals: { runs: number; allowed: number; hits: number; sb: number; cs: number };
+  totals: { runs: number; allowed: number; hits: number; sb: number; cs: number; errors: number; xbh: number; hr: number };
 };
 
 const BAT_KEYS = ["pa", "ab", "h", "b1", "b2", "b3", "hr", "rbi", "r", "bb", "hbp", "so", "sh", "sf", "sb", "cs", "po"] as const;
@@ -48,7 +48,7 @@ export function summarizeSeason(team: TeamProfile, allGames: Game[], filter: Sea
   const pitching = new Map<string, SeasonPitching>();
   const rows: GameRow[] = [];
   const record = { win: 0, loss: 0, draw: 0 };
-  const totals = { runs: 0, allowed: 0, hits: 0, sb: 0, cs: 0 };
+  const totals = { runs: 0, allowed: 0, hits: 0, sb: 0, cs: 0, errors: 0, xbh: 0, hr: 0 };
 
   const games = allGames
     .filter((g) => sideOf(g, team.id))
@@ -65,6 +65,8 @@ export function summarizeSeason(team: TeamProfile, allGames: Game[], filter: Sea
     totals.runs += s.runs[side];
     totals.allowed += s.runs[opp];
     totals.hits += s.hits[side];
+    // 失策はそのチームが守っているときに記録したもの
+    totals.errors += s.errors[side];
 
     for (const st of Object.values(s.stats)) {
       if (st.side !== side) continue;
@@ -76,6 +78,8 @@ export function summarizeSeason(team: TeamProfile, allGames: Game[], filter: Sea
       batting.set(st.playerId, acc);
       totals.sb += st.sb;
       totals.cs += st.cs;
+      totals.xbh += st.b2 + st.b3 + st.hr;
+      totals.hr += st.hr;
     }
     for (const id of s.pitcherOrder[side]) {
       const ps = s.pitching[id];
@@ -104,4 +108,85 @@ export function winningPct(w: number, l: number): string {
   if (w + l === 0) return "—";
   const v = w / (w + l);
   return v >= 1 ? "1.000" : v.toFixed(3).replace(/^0/, "");
+}
+
+/** 出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛) */
+export function onBasePct(st: Pick<PlayerStats, "h" | "ab" | "bb" | "hbp" | "sf">): string {
+  const den = st.ab + st.bb + st.hbp + st.sf;
+  if (den === 0) return "—";
+  const v = (st.h + st.bb + st.hbp) / den;
+  return v >= 1 ? "1.000" : v.toFixed(3).replace(/^0/, "");
+}
+
+export type PlayerLine = { label: string; batting: SeasonBatting | null; pitching: SeasonPitching | null };
+
+export type PlayerSummary = {
+  /** すべての試合の合計（チーム・カテゴリーに関係なく） */
+  total: PlayerLine;
+  byCategory: PlayerLine[];
+  bySeason: PlayerLine[];
+  byTeam: PlayerLine[];
+};
+
+const NO_CATEGORY = "カテゴリーなし";
+
+/**
+ * 1人の選手の個人総合成績。名簿の選手IDが同じなら、どのチーム・カテゴリーの試合でも合計する。
+ * 打席にも塁にも出ていない控えの試合は数えない（チームの成績と同じ考え方）。
+ */
+export function summarizePlayer(playerId: string, allGames: Game[]): PlayerSummary {
+  const groups = new Map<string, Map<string, PlayerLine>>([
+    ["total", new Map()],
+    ["category", new Map()],
+    ["season", new Map()],
+    ["team", new Map()],
+  ]);
+  const add = (kind: string, label: string, bat: PlayerStats | null, pit: PitcherStats | null, w: boolean, l: boolean) => {
+    const g = groups.get(kind)!;
+    const line = g.get(label) ?? { label, batting: null, pitching: null };
+    if (bat) {
+      const acc = line.batting ?? ({ ...Object.fromEntries(BAT_KEYS.map((k) => [k, 0])), playerId, games: 0 } as SeasonBatting);
+      for (const k of BAT_KEYS) acc[k] += bat[k];
+      acc.games += 1;
+      line.batting = acc;
+    }
+    if (pit) {
+      const acc = line.pitching ?? ({ ...Object.fromEntries(PITCH_KEYS.map((k) => [k, 0])), playerId, games: 0, w: 0, l: 0 } as SeasonPitching);
+      for (const k of PITCH_KEYS) acc[k] += pit[k];
+      acc.games += 1;
+      if (w) acc.w += 1;
+      if (l) acc.l += 1;
+      line.pitching = acc;
+    }
+    g.set(label, line);
+  };
+
+  const games = [...allGames].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+  for (const game of games) {
+    const side = (["away", "home"] as const).find((sd) => game.teams[sd].roster.some((p) => p.id === playerId));
+    if (!side) continue;
+    const s = replay(game);
+    const st = s.stats[playerId];
+    const played = st && (st.pa > 0 || st.r > 0 || st.sb > 0 || st.cs > 0 || game.teams[side].lineup.includes(playerId) || s.lineups[side].includes(playerId));
+    const ps = s.pitching[playerId] ?? null;
+    const bat = played ? st : null;
+    if (!bat && !ps) continue;
+    const w = s.decisions?.win === playerId;
+    const l = s.decisions?.loss === playerId;
+    add("total", "通算", bat, ps, w, l);
+    add("category", game.category ?? NO_CATEGORY, bat, ps, w, l);
+    add("season", game.season ?? "シーズンなし", bat, ps, w, l);
+    add("team", game.teams[side].name || "（名前のないチーム）", bat, ps, w, l);
+  }
+  const list = (kind: string) => [...groups.get(kind)!.values()];
+  const catOrder = (l: PlayerLine) => {
+    const i = ["6年生", "5年生", "4年生", "3年生以下", "全学年"].indexOf(l.label);
+    return i < 0 ? 99 : i;
+  };
+  return {
+    total: list("total")[0] ?? { label: "通算", batting: null, pitching: null },
+    byCategory: list("category").sort((a, b) => catOrder(a) - catOrder(b)),
+    bySeason: list("season").sort((a, b) => b.label.localeCompare(a.label)),
+    byTeam: list("team"),
+  };
 }

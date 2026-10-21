@@ -13,11 +13,13 @@ type Props = {
   onJoin: (player: Player, teamIds: string[]) => void;
   /** 名簿をほかの指導者・保護者の端末に送る */
   onShare: () => void;
+  /** 選手の個人総合成績を開く */
+  onOpenPlayer: (id: string) => void;
   onBack: () => void;
 };
 
 /** 名簿：クラブの選手をまとめて管理する（追加・学年・退団・進学・卒団） */
-export function RosterScreen({ roster, teams, onSave, onJoin, onShare, onBack }: Props) {
+export function RosterScreen({ roster, teams, onSave, onJoin, onShare, onOpenPlayer, onBack }: Props) {
   const [name, setName] = useState("");
   const [grade, setGrade] = useState<number>(6);
   // 追加する選手を入れられるチーム。最初は学年がいちばん近いチーム（4年生なら「4年生以下」）を選んでおく
@@ -139,6 +141,9 @@ export function RosterScreen({ roster, teams, onSave, onJoin, onShare, onBack }:
                     ))}
                     <option value={GRADUATED}>卒団</option>
                   </select>
+                  <button className="link-button stats-link" onClick={() => onOpenPlayer(p.id)}>
+                    成績
+                  </button>
                   <button
                     className="link-button danger"
                     onClick={async () => {
@@ -181,6 +186,9 @@ export function RosterScreen({ roster, teams, onSave, onJoin, onShare, onBack }:
             {graduated.map((p) => (
               <li key={p.id}>
                 <span className="roster-name">{p.name}</span>
+                <button className="link-button stats-link" onClick={() => onOpenPlayer(p.id)}>
+                  成績
+                </button>
                 <button className="link-button" onClick={() => patch(p.id, { grade: 6 })}>
                   6年生に戻す
                 </button>
@@ -200,6 +208,9 @@ export function RosterScreen({ roster, teams, onSave, onJoin, onShare, onBack }:
                   {p.name}
                   <small>{gradeLabel(p.grade)}</small>
                 </span>
+                <button className="link-button stats-link" onClick={() => onOpenPlayer(p.id)}>
+                  成績
+                </button>
                 <button className="link-button" onClick={() => patch(p.id, { left: undefined })}>
                   復帰
                 </button>
