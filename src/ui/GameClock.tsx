@@ -3,7 +3,7 @@ import { clockStatus, clockTime, durationLabel, formatDuration } from "../domain
 import type { Game } from "../domain/types";
 
 /** 試合時間のストップウォッチ。プレイボールで開始時刻、試合終了で終了時刻を記録する */
-export function GameClock({ game, onChange }: { game: Game; onChange: (patch: Partial<Game>) => void }) {
+export function GameClock({ game, locked, onChange }: { game: Game; locked?: boolean; onChange: (patch: Partial<Game>) => void }) {
   const { startedAt, endedAt } = game;
   const limit = game.timeLimit ?? 0;
   const [now, setNow] = useState(() => Date.now());
@@ -18,6 +18,7 @@ export function GameClock({ game, onChange }: { game: Game; onChange: (patch: Pa
   const limitLabel = limit ? `試合時間 ${limit}分` : "試合時間の制限なし";
 
   if (!startedAt) {
+    if (locked) return null;
     return (
       <div className="game-clock ready">
         <button className="playball-button" onClick={() => onChange({ startedAt: Date.now(), endedAt: undefined })}>
@@ -34,9 +35,11 @@ export function GameClock({ game, onChange }: { game: Game; onChange: (patch: Pa
         <span className="clock-main">
           {clockTime(startedAt)}〜{clockTime(endedAt)}（{durationLabel(endedAt - startedAt)}）
         </span>
-        <button className="link-button small" onClick={() => onChange({ endedAt: undefined })}>
-          終了を取り消す
-        </button>
+        {!locked && (
+          <button className="link-button small" onClick={() => onChange({ endedAt: undefined })}>
+            終了を取り消す
+          </button>
+        )}
       </div>
     );
   }

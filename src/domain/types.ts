@@ -219,6 +219,8 @@ export type Game = {
   /** プレイボールの時刻・試合終了の時刻（ストップウォッチ） */
   startedAt?: number;
   endedAt?: number;
+  /** 試合結果を確定した時刻。確定中は記録を変えられない（「記録を修正する」で解除） */
+  confirmedAt?: number;
   date: string;
   tournament: string;
   scheduledInnings: number;

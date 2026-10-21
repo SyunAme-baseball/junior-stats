@@ -2836,3 +2836,4 @@ button.roster-name {
 .plan-open small { display: block; color: #5b6b5e; margin-top: 2px; }
 .plan-actions { display: flex; align-items: center; gap: 6px; flex: none; }
 .plan-save { width: 100%; margin-top: 10px; }
+.confirmed-badge { display: inline-block; margin-left: 10px; padding: 2px 10px; border-radius: 999px; background: #e6f4ea; color: #1f6b3a; font-size: 0.8rem; font-weight: 800; vertical-align: middle; }

@@ -202,6 +202,7 @@ export function ResultScreen({ game, onChange, onBack }: { game: Game; onChange:
                 <label key={key} className="field">
                   {label}
                   <select
+                    disabled={!!game.confirmedAt}
                     value={game.pitcherDecisions?.[key] ?? ""}
                     onChange={(e) => {
                       const next = { ...game.pitcherDecisions, [key]: e.target.value || undefined };

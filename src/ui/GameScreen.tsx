@@ -65,7 +65,21 @@ export function GameScreen({ game, onChange, onShowResult, onBack, earlierPitche
     setEditing(null);
   };
 
+  const locked = !!game.confirmedAt;
+
+  // 試合結果の確定：うっかり記録を変えないようにし、止め忘れたストップウォッチも止めて、共有を開く
+  const confirmResult = () => {
+    const now = Date.now();
+    onChange({ ...game, confirmedAt: now, endedAt: game.startedAt && !game.endedAt ? now : game.endedAt, updatedAt: now });
+    onShare();
+  };
+  const unlock = async () => {
+    if (!(await ask("確定を解除して、記録を修正できるようにします。直し終わったら、もう一度「試合結果を確定する」を押してください。", "記録を修正する", false))) return;
+    onChange({ ...game, confirmedAt: undefined, updatedAt: Date.now() });
+  };
+
   const openPlay = async (index: number) => {
+    if (locked) return void (await ask("この試合は確定済みです。直すときは、上の「記録を修正する」を押してください。", "OK", false));
     const play = game.plays[index];
     if (play.type === "pa" || play.type === "runner") {
       setEditing({ index, result: play.result, existing: play });
@@ -147,7 +161,7 @@ export function GameScreen({ game, onChange, onShowResult, onBack, earlierPitche
         nameOf={nameOf}
         pitchInfo={pitcherId ? { now: pitchesNow, today: pitchesToday, limit, level, earlier: earlierPitches[pitcherId] ?? 0 } : null}
       />
-      <GameClock game={game} onChange={(patch) => onChange({ ...game, ...patch, updatedAt: Date.now() })} />
+      <GameClock game={game} locked={locked} onChange={(patch) => onChange({ ...game, ...patch, updatedAt: Date.now() })} />
       {!state.finished && level === "over" && (
         <p className="pitch-alert over">
           ⚠ {nameOf(pitcherId)}は今日{pitchesToday}球で、球数制限（{limit}球）に達しました。
@@ -157,11 +171,35 @@ export function GameScreen({ game, onChange, onShowResult, onBack, earlierPitche
 
       {state.finished ? (
         <section className="panel finished-panel">
-          <h2>試合終了</h2>
-          <p>記録を直したいときは、下の「試合経過」からプレーを選んでください。</p>
-          <button className="primary-button" onClick={onShowResult}>
-            試合結果を見る
-          </button>
+          <h2>試合終了{locked && <span className="confirmed-badge">✓ 確定済み</span>}</h2>
+          {locked ? (
+            <>
+              <p>試合結果は確定しています（{new Date(game.confirmedAt!).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}）。成績に反映済みです。</p>
+              <div className="stack">
+                <button className="primary-button" onClick={onShowResult}>
+                  試合結果を見る
+                </button>
+                <button className="secondary-button" onClick={onShare}>
+                  結果を共有する
+                </button>
+                <button className="secondary-button" onClick={unlock}>
+                  記録を修正する
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p>記録に間違いがないか確認して、「試合結果を確定する」を押してください。直したいときは、下の「試合経過」からプレーを選びます。</p>
+              <div className="stack">
+                <button className="primary-button" onClick={confirmResult}>
+                  試合結果を確定する
+                </button>
+                <button className="secondary-button" onClick={onShowResult}>
+                  試合結果を見る
+                </button>
+              </div>
+            </>
+          )}
         </section>
       ) : (
         <section className="panel input-panel">
@@ -292,7 +330,7 @@ export function GameScreen({ game, onChange, onShowResult, onBack, earlierPitche
       <section className="panel">
         <div className="section-heading">
           <h2>試合経過</h2>
-          <button className="secondary-button" onClick={undo} disabled={game.plays.length === 0}>
+          <button className="secondary-button" onClick={undo} disabled={game.plays.length === 0 || locked}>
             直前の記録を取り消す
           </button>
         </div>
