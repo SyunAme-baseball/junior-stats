@@ -21,21 +21,12 @@ type TeamForm = ManualForm | ProfileForm;
 
 const SAMPLE_POSITIONS: Position[] = [8, 4, 6, 1, 2, 3, 5, 7, 9];
 
-const SAMPLE: Record<Side, ManualForm> = {
-  away: {
-    kind: "manual",
-    name: "さいたまフェニックス",
-    rows: [
-      ...["山田", "佐藤", "鈴木", "田中", "高橋", "伊藤", "渡辺", "中村", "小林"].map((name, i) => ({ name, position: SAMPLE_POSITIONS[i] })),
-      ...["加藤", "吉田"].map((name) => ({ name, position: null, bench: true })),
-    ],
-  },
-  home: {
-    kind: "manual",
-    name: "○○ジュニア",
-    rows: Array.from({ length: 9 }, (_, i) => ({ name: `選手${i + 1}`, position: SAMPLE_POSITIONS[i] })),
-  },
-};
+/** その場で入力するチームの最初の形：名前は空欄、9人分の行 */
+const blankManual = (): ManualForm => ({
+  kind: "manual",
+  name: "",
+  rows: SAMPLE_POSITIONS.map((position) => ({ name: "", position })),
+});
 
 export function teamLabel(t: TeamProfile) {
   return t.name || "（名前のないチーム）";
@@ -119,7 +110,7 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
   const [pitchLimit, setPitchLimit] = useState(DEFAULT_PITCH_LIMIT);
   const [timeLimit, setTimeLimit] = useState(() => defaultTimeLimit(initialCategory));
   const [teams, setTeams] = useState<Record<Side, TeamForm>>(() =>
-    initialProfile ? { away: profileForm(initialProfile, initialCategory, false), home: { ...SAMPLE.home } } : SAMPLE,
+    initialProfile ? { away: profileForm(initialProfile, initialCategory, false), home: blankManual() } : { away: blankManual(), home: blankManual() },
   );
 
   const profileOf = (form: TeamForm) => (form.kind === "profile" ? profiles.find((t) => t.id === form.teamId) : undefined);
@@ -142,7 +133,7 @@ export function SetupScreen({ profiles, initialTeamId, onCreate, onCancel }: Pro
 
   const chooseTeam = (side: Side, id: string) => {
     const t = profiles.find((p) => p.id === id);
-    update(side, t ? profileForm(t, category, includeLower) : { ...SAMPLE[side], name: "" });
+    update(side, t ? profileForm(t, category, includeLower) : blankManual());
   };
 
   // 打順・守備位置まわりの注意は、その側の先発メンバーの上に出す（下までスクロールしなくて済むように）

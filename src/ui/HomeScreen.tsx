@@ -24,7 +24,6 @@ type Props = {
   onExportAll: () => void;
   onImport: (json: string) => void;
   onPaste: () => void;
-  onDemo: () => void;
 };
 
 const ALL = "すべて";
@@ -39,7 +38,7 @@ function gradeCounts(t: TeamProfile) {
   return t.maxGrade !== undefined ? `${teamGradeLabel(t.maxGrade)}｜${list}` : list;
 }
 
-export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, rosterCount, onOpenRoster, onOpenTeam, onDelete, onExport, onExportAll, onImport, onPaste, onDemo }: Props) {
+export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, rosterCount, onOpenRoster, onOpenTeam, onDelete, onExport, onExportAll, onImport, onPaste }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const seasons = [...new Set(games.map((g) => g.season ?? "").filter(Boolean))].sort().reverse();
   const [season, setSeason] = useState(seasons[0] ?? ALL);
@@ -112,11 +111,7 @@ export function HomeScreen({ games, allGames, teams, onOpen, onNew, onNewTeam, r
             <button className="link-button small" onClick={() => fileRef.current?.click()}>
               ファイルから読み込む
             </button>
-            。まずは見てみたい場合は{" "}
-            <button className="link-button small" onClick={onDemo}>
-              サンプルを入れて試す
-            </button>
-            （あとで削除できます）。
+            。
           </p>
         </section>
       )}

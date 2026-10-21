@@ -13,7 +13,6 @@ import { TeamScreen } from "./ui/TeamScreen";
 import { RosterScreen } from "./ui/RosterScreen";
 import { TeamMembers } from "./ui/TeamMembers";
 import { isActive } from "./domain/roster";
-import { makeDemo } from "./demo";
 import { askText, ConfirmHost } from "./ui/confirm";
 import "./App.css";
 
@@ -314,16 +313,6 @@ export default function App() {
         if (g) download(`mieru-score-${g.date || "game"}-${g.teams.away.name}-vs-${g.teams.home.name}.json`, exportGame(g));
       }}
       onExportAll={() => download(`mieru-score-backup-${new Date().toISOString().slice(0, 10)}.json`, exportAll(repo))}
-      onDemo={() => {
-        const { team, game: g } = makeDemo();
-        repo.saveTeam(team);
-        repo.save(g);
-        setTeams(repo.listTeams());
-        setRoster(repo.getRoster());
-        setGames(repo.list());
-        setView({ name: "team", id: team.id });
-        setToast("サンプルを入れました。試合を開くと、プレーの記録や結果画面を確認できます。");
-      }}
       onPaste={async () => {
         const text = (await askText("受け取った共有コード（またはリンク）を貼り付けてください。", "", "読み込む", true, "共有コード"))?.trim();
         if (!text) return;
