@@ -35,6 +35,21 @@ export function eligiblePlayers(players: Player[], categoryId: string, includeLo
   });
 }
 
+/**
+ * 登録チームで試合をするときに選べる選手：そのチームに登録している今いる選手全員。
+ * 下の学年の選手が上のカテゴリーの試合に出ることも多いので、学年では絞らない。
+ * 並びは、カテゴリーの学年の選手を先に、そのあとは学年の高い順（打順の初期値に使う）。
+ */
+export function teamGamePlayers(players: Player[], categoryId: string): Player[] {
+  const cat = CATEGORIES.find((c) => c.id === categoryId);
+  const active = players.filter((p) => !p.left && (p.guest || (p.grade ?? 0) < GRADUATED));
+  const inCategory = (p: Player) => !!cat && p.grade !== undefined && cat.grades.includes(p.grade);
+  return active
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => Number(inCategory(b.p)) - Number(inCategory(a.p)) || (b.p.grade ?? 0) - (a.p.grade ?? 0) || a.i - b.i)
+    .map(({ p }) => p);
+}
+
 /** 新年度：全員の学年を1つ上げる（6年生は卒団） */
 export function promoteGrades(team: TeamProfile): TeamProfile {
   return {

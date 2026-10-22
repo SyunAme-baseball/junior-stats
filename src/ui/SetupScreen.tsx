@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CATEGORIES, eligiblePlayers, gradeLabel } from "../domain/categories";
+import { CATEGORIES, gradeLabel, teamGamePlayers } from "../domain/categories";
 import { categoryForGrade } from "../domain/roster";
 import { moveItem, useDragReorder } from "./useDragReorder";
 import { newId } from "../domain/id";
@@ -23,8 +23,8 @@ export function teamLabel(t: TeamProfile) {
   return t.name || "（名前のないチーム）";
 }
 
-function profileForm(t: TeamProfile, category: string, includeLower: boolean): ProfileForm {
-  const eligible = eligiblePlayers(t.players, category, includeLower);
+function profileForm(t: TeamProfile, category: string): ProfileForm {
+  const eligible = teamGamePlayers(t.players, category);
   const ok = (id: string) => eligible.some((p) => p.id === id);
   const last = (t.lastLineups?.[category] ?? []).filter((r) => ok(r.playerId));
   const numberOf = (id: string) => t.lastNumbers?.[id] ?? "";
@@ -99,7 +99,6 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
   // チームの学年（4年生以下のチームなら「4年生」）を最初のカテゴリーにする
   const initialCategory = plan?.category ?? categoryForGrade(initialProfile?.maxGrade) ?? "6年生";
   const [category, setCategory] = useState(initialCategory);
-  const [includeLower, setIncludeLower] = useState(plan?.includeLower ?? false);
   const [tournament, setTournament] = useState(plan?.tournament ?? "");
   const [innings, setInnings] = useState(plan?.innings ?? 7);
   const [pitchLimit, setPitchLimit] = useState(plan?.pitchLimit ?? DEFAULT_PITCH_LIMIT);
@@ -110,22 +109,21 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
       const ok = (f: TeamForm) => (f.kind === "manual" || profiles.some((t) => t.id === f.teamId) ? f : blankManual());
       return { away: ok(plan.teams.away), home: ok(plan.teams.home) };
     }
-    return initialProfile ? { away: profileForm(initialProfile, initialCategory, false), home: blankManual() } : { away: blankManual(), home: blankManual() };
+    return initialProfile ? { away: profileForm(initialProfile, initialCategory), home: blankManual() } : { away: blankManual(), home: blankManual() };
   });
 
   const profileOf = (form: TeamForm) => (form.kind === "profile" ? profiles.find((t) => t.id === form.teamId) : undefined);
   const update = (side: Side, form: TeamForm) => setTeams((t) => ({ ...t, [side]: form }));
 
   // カテゴリーを変えたら、登録チームの打順と控えを作り直す
-  const changeCategory = (cat: string, lower = includeLower) => {
+  const changeCategory = (cat: string) => {
     setCategory(cat);
-    setIncludeLower(lower);
     setTimeLimit(defaultTimeLimit(cat));
     setTeams((t) => {
       const next = { ...t };
       for (const side of ["away", "home"] as const) {
         const p = profileOf(t[side]);
-        if (p) next[side] = profileForm(p, cat, lower);
+        if (p) next[side] = profileForm(p, cat);
       }
       return next;
     });
@@ -133,7 +131,7 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
 
   const chooseTeam = (side: Side, id: string) => {
     const t = profiles.find((p) => p.id === id);
-    update(side, t ? profileForm(t, category, includeLower) : blankManual());
+    update(side, t ? profileForm(t, category) : blankManual());
   };
 
   // 打順・守備位置まわりの注意は、その側の先発メンバーの上に出す（下までスクロールしなくて済むように）
@@ -179,7 +177,7 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
       date,
       season,
       category,
-      includeLower,
+      includeLower: false,
       tournament,
       innings,
       pitchLimit,
@@ -234,10 +232,7 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
                 </button>
               ))}
             </div>
-            <label className="check">
-              <input type="checkbox" checked={includeLower} onChange={(e) => changeCategory(category, e.target.checked)} />
-              下の学年の選手も選べるようにする
-            </label>
+            <span className="muted small">登録チームは、カテゴリーに関係なくチームの選手全員から打順・控えを選べます。</span>
           </div>
         )}
         <div className="two-col">
@@ -319,7 +314,7 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
                 </p>
               ))}
               {form.kind === "profile" && profile ? (
-                <ProfileLineup form={form} profile={profile} category={category} includeLower={includeLower} onChange={(f) => update(side, f)} />
+                <ProfileLineup form={form} profile={profile} category={category} onChange={(f) => update(side, f)} />
               ) : form.kind === "manual" ? (
                 <ManualLineup form={form} onChange={(f) => update(side, f)} />
               ) : null}
@@ -410,16 +405,14 @@ function ProfileLineup({
   form,
   profile,
   category,
-  includeLower,
   onChange,
 }: {
   form: ProfileForm;
   profile: TeamProfile;
   category: string;
-  includeLower: boolean;
   onChange: (f: ProfileForm) => void;
 }) {
-  const eligible = eligiblePlayers(profile.players, category, includeLower);
+  const eligible = teamGamePlayers(profile.players, category);
   const used = new Set(form.rows.map((r) => r.playerId).filter(Boolean));
   const bench = eligible.filter((p) => !used.has(p.id));
   const editRow = (i: number, patch: Partial<ProfileRow>) => {
@@ -436,7 +429,7 @@ function ProfileLineup({
   const drag = useDragReorder<HTMLOListElement>((from, to) => onChange({ ...form, rows: moveItem(form.rows, from, to) }));
 
   if (eligible.length === 0) {
-    return <p className="notice">{category}の選手が名簿にいません。名簿で選手の学年を確認するか、「下の学年の選手も選べるようにする」を使ってください。</p>;
+    return <p className="notice">このチームに選手が登録されていません。チーム画面の「メンバーを選び直す」で名簿から選んでください。</p>;
   }
 
   return (

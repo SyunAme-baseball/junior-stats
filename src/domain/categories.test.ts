@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eligiblePlayers, normalizeTeam, promoteGrades } from "./categories";
+import { eligiblePlayers, normalizeTeam, promoteGrades, teamGamePlayers } from "./categories";
 import type { TeamProfile } from "./types";
 
 const team: TeamProfile = {
@@ -35,5 +35,21 @@ describe("カテゴリーと学年", () => {
     const old = { ...team, grade: "6年生", season: "2026", players: [{ id: "x", name: "X", number: "10" }] };
     const t = normalizeTeam(old);
     expect(t.players).toEqual([{ id: "x", name: "X", grade: 6 }]);
+  });
+});
+
+describe("登録チームで試合をするときの選手", () => {
+  it("学年に関係なくチームの今いる選手全員。カテゴリーの学年が先、あとは学年の高い順", () => {
+    const players = [
+      { id: "g3", name: "3年", grade: 3 },
+      { id: "g6", name: "6年", grade: 6 },
+      { id: "g5", name: "5年", grade: 5 },
+      { id: "g4", name: "4年", grade: 4 },
+      { id: "out", name: "退団", grade: 5, left: true },
+      { id: "grad", name: "卒団", grade: 7 },
+      { id: "guest", name: "他チーム", guest: true },
+    ];
+    expect(teamGamePlayers(players, "5年生").map((p) => p.id)).toEqual(["g5", "g6", "g4", "g3", "guest"]);
+    expect(teamGamePlayers(players, "6年生").map((p) => p.id)).toEqual(["g6", "g5", "g4", "g3", "guest"]);
   });
 });
