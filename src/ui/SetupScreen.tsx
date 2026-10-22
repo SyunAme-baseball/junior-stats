@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CATEGORIES, gradeLabel, teamGamePlayers } from "../domain/categories";
-import { categoryForGrade } from "../domain/roster";
+import { categoryForGrade, isActive } from "../domain/roster";
 import { moveItem, useDragReorder } from "./useDragReorder";
 import { newId } from "../domain/id";
 import { DEFAULT_PITCH_LIMIT } from "../domain/pitchCount";
@@ -23,10 +23,22 @@ export function teamLabel(t: TeamProfile) {
   return t.name || "（名前のないチーム）";
 }
 
-function profileForm(t: TeamProfile, category: string): ProfileForm {
-  const eligible = teamGamePlayers(t.players, category);
+/** チームの選手に加えて選べる、上の学年の選手（名簿にいて、チームに入っていない今いる選手） */
+function upperPlayers(t: TeamProfile, roster: Player[]): Player[] {
+  return roster.filter((p) => isActive(p) && !t.players.some((x) => x.id === p.id) && (t.maxGrade === undefined || (p.grade ?? 0) > t.maxGrade));
+}
+
+/** 前回の試合のスタメンに、チーム外（上の学年）の選手が入っていたか */
+function lastUsesUpper(t: TeamProfile, roster: Player[]): boolean {
+  const ids = new Set(upperPlayers(t, roster).map((p) => p.id));
+  return (t.latestLineup ?? []).some((r) => ids.has(r.playerId));
+}
+
+function profileForm(t: TeamProfile, category: string, pool: Player[] = t.players): ProfileForm {
+  const eligible = teamGamePlayers(pool, category);
   const ok = (id: string) => eligible.some((p) => p.id === id);
-  const last = (t.lastLineups?.[category] ?? []).filter((r) => ok(r.playerId));
+  // 前回の試合のスタメン（打順・守備位置）をそのまま使う。なければカテゴリーごとの前回
+  const last = (t.latestLineup ?? t.lastLineups?.[category] ?? []).filter((r) => ok(r.playerId));
   const numberOf = (id: string) => t.lastNumbers?.[id] ?? "";
   const rows: ProfileRow[] = last.length
     ? last.map((r) => ({ playerId: r.playerId, number: numberOf(r.playerId), position: r.position }))
@@ -47,10 +59,11 @@ function dhPitcherOf(form: TeamForm): string | null {
   return form.rows.find((r) => r.bench && r.dhPitcher && r.name.trim())?.name.trim() ?? null;
 }
 
-function toTeam(form: TeamForm, profiles: TeamProfile[]): Team {
+function toTeam(form: TeamForm, profiles: TeamProfile[], roster: Player[]): Team {
   if (form.kind === "profile") {
     const profile = profiles.find((t) => t.id === form.teamId)!;
-    const byId = new Map(profile.players.map((p) => [p.id, p]));
+    // 上の学年から入れた選手は名簿から引く
+    const byId = new Map([...roster, ...profile.players].map((p) => [p.id, p]));
     const rows = startersOf(form) as ProfileRow[];
     const starters: Player[] = rows.map((r) => ({ id: r.playerId, name: byId.get(r.playerId)?.name ?? "", number: r.number.trim() || undefined }));
     const bench: Player[] = Object.entries(form.benchNumbers)
@@ -82,6 +95,8 @@ function toTeam(form: TeamForm, profiles: TeamProfile[]): Team {
 
 type Props = {
   profiles: TeamProfile[];
+  /** クラブの名簿（上の学年の選手を選ぶときに使う） */
+  roster: Player[];
   /** 登録チームの画面から来たときは、そのチームを先攻にセットしておく */
   initialTeamId?: string;
   /** 保存したメンバー表から開いたとき */
@@ -92,7 +107,7 @@ type Props = {
   onCancel?: () => void;
 };
 
-export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCreate, onSavePlan, onCancel }: Props) {
+export function SetupScreen({ profiles, roster, initialTeamId, initialPlan: plan, onCreate, onSavePlan, onCancel }: Props) {
   const initialProfile = profiles.find((t) => t.id === initialTeamId) ?? (profiles.length === 1 ? profiles[0] : undefined);
   const [date, setDate] = useState(() => plan?.date ?? new Date().toISOString().slice(0, 10));
   const [season, setSeason] = useState(() => plan?.season ?? new Date().getFullYear().toString());
@@ -103,13 +118,16 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
   const [innings, setInnings] = useState(plan?.innings ?? 7);
   const [pitchLimit, setPitchLimit] = useState(plan?.pitchLimit ?? DEFAULT_PITCH_LIMIT);
   const [timeLimit, setTimeLimit] = useState(() => plan?.timeLimit ?? defaultTimeLimit(initialCategory));
+  // 練習試合などで上の学年の選手を出すとき。前回のスタメンに入っていたら最初から選べるようにする
+  const [includeUpper, setIncludeUpper] = useState(() => !!initialProfile && lastUsesUpper(initialProfile, roster));
+  const poolOf = (t: TeamProfile, upper = includeUpper) => (upper ? [...t.players, ...upperPlayers(t, roster)] : t.players);
   const [teams, setTeams] = useState<Record<Side, TeamForm>>(() => {
     if (plan) {
       // 削除された登録チームのメンバー表は、その場で入力する形に戻す
       const ok = (f: TeamForm) => (f.kind === "manual" || profiles.some((t) => t.id === f.teamId) ? f : blankManual());
       return { away: ok(plan.teams.away), home: ok(plan.teams.home) };
     }
-    return initialProfile ? { away: profileForm(initialProfile, initialCategory), home: blankManual() } : { away: blankManual(), home: blankManual() };
+    return initialProfile ? { away: profileForm(initialProfile, initialCategory, poolOf(initialProfile, lastUsesUpper(initialProfile, roster))), home: blankManual() } : { away: blankManual(), home: blankManual() };
   });
 
   const profileOf = (form: TeamForm) => (form.kind === "profile" ? profiles.find((t) => t.id === form.teamId) : undefined);
@@ -123,7 +141,7 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
       const next = { ...t };
       for (const side of ["away", "home"] as const) {
         const p = profileOf(t[side]);
-        if (p) next[side] = profileForm(p, cat);
+        if (p) next[side] = profileForm(p, cat, poolOf(p));
       }
       return next;
     });
@@ -131,7 +149,7 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
 
   const chooseTeam = (side: Side, id: string) => {
     const t = profiles.find((p) => p.id === id);
-    update(side, t ? profileForm(t, category) : blankManual());
+    update(side, t ? profileForm(t, category, poolOf(t)) : blankManual());
   };
 
   // 打順・守備位置まわりの注意は、その側の先発メンバーの上に出す（下までスクロールしなくて済むように）
@@ -200,7 +218,7 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
       scheduledInnings: innings,
       pitchLimit,
       timeLimit,
-      teams: { away: toTeam(teams.away, profiles), home: toTeam(teams.home, profiles) },
+      teams: { away: toTeam(teams.away, profiles, roster), home: toTeam(teams.home, profiles, roster) },
       plays: [],
       createdAt: now,
       updatedAt: now,
@@ -233,6 +251,10 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
               ))}
             </div>
             <span className="muted small">登録チームは、カテゴリーに関係なくチームの選手全員から打順・控えを選べます。</span>
+            <label className="check">
+              <input type="checkbox" checked={includeUpper} onChange={(e) => setIncludeUpper(e.target.checked)} />
+              上の学年の選手も選べるようにする（練習試合など）
+            </label>
           </div>
         )}
         <div className="two-col">
@@ -314,7 +336,14 @@ export function SetupScreen({ profiles, initialTeamId, initialPlan: plan, onCrea
                 </p>
               ))}
               {form.kind === "profile" && profile ? (
-                <ProfileLineup form={form} profile={profile} category={category} onChange={(f) => update(side, f)} />
+                <ProfileLineup
+                  form={form}
+                  profile={profile}
+                  upper={upperPlayers(profile, roster)}
+                  includeUpper={includeUpper}
+                  category={category}
+                  onChange={(f) => update(side, f)}
+                />
               ) : form.kind === "manual" ? (
                 <ManualLineup form={form} onChange={(f) => update(side, f)} />
               ) : null}
@@ -404,15 +433,22 @@ function DhPitcherSelect({ options, value, onChange }: { options: { value: strin
 function ProfileLineup({
   form,
   profile,
+  upper,
+  includeUpper,
   category,
   onChange,
 }: {
   form: ProfileForm;
   profile: TeamProfile;
+  /** チームに入っていない上の学年の選手 */
+  upper: Player[];
+  includeUpper: boolean;
   category: string;
   onChange: (f: ProfileForm) => void;
 }) {
-  const eligible = teamGamePlayers(profile.players, category);
+  // 上の学年の選手は、チェックを入れたときだけ選べる（打順に入っている選手は外れない）
+  const inRows = new Set(form.rows.map((r) => r.playerId));
+  const eligible = teamGamePlayers([...profile.players, ...upper.filter((p) => includeUpper || inRows.has(p.id))], category);
   const used = new Set(form.rows.map((r) => r.playerId).filter(Boolean));
   const bench = eligible.filter((p) => !used.has(p.id));
   const editRow = (i: number, patch: Partial<ProfileRow>) => {

@@ -88,7 +88,9 @@ export default function App() {
       for (const side of ["away", "home"] as const) {
         const profile = repo.getTeam(g.teams[side].id);
         if (!profile) continue;
-        const missing = g.teams[side].roster.filter((p) => !profile.players.some((x) => x.id === p.id));
+        // 名簿にいる選手（上の学年から借りた選手など）はチームに加えない。試合中に新しく入力した選手だけ加える
+        const clubRoster = repo.getRoster();
+        const missing = g.teams[side].roster.filter((p) => !profile.players.some((x) => x.id === p.id) && !clubRoster.some((x) => x.id === p.id));
         // 背番号は試合ごとのものなので名簿には入れない
         const added = missing.map(({ id, name }) => ({ id, name }));
         if (added.length) saveTeam({ ...profile, players: [...profile.players, ...added], updatedAt: Date.now() });
@@ -195,6 +197,7 @@ export default function App() {
       <SetupScreen
         key={view.planId ?? "new"}
         profiles={teams}
+        roster={roster}
         initialTeamId={view.teamId}
         initialPlan={view.planId ? plans.find((p) => p.id === view.planId) : undefined}
         onSavePlan={(plan) => {
@@ -221,6 +224,7 @@ export default function App() {
             saveTeam({
               ...profile,
               lastLineups: { ...profile.lastLineups, [g.category ?? "全学年"]: t.lineup.map((playerId, i) => ({ playerId, position: t.positions[i] })) },
+              latestLineup: t.lineup.map((playerId, i) => ({ playerId, position: t.positions[i] })),
               lastNumbers,
               updatedAt: Date.now(),
             });

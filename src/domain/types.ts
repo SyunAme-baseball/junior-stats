@@ -38,6 +38,8 @@ export type TeamProfile = {
   icon?: { emoji?: string; color?: string };
   /** カテゴリーごとの前回の打順と守備位置（次の試合の初期値） */
   lastLineups?: Record<string, LineupSlot[]>;
+  /** 前回の試合の打順と守備位置（カテゴリーに関係なく最新。次の試合の初期値） */
+  latestLineup?: LineupSlot[];
   /** 選手ごとの前回の背番号（次の試合の初期値） */
   lastNumbers?: Record<string, string>;
   createdAt: number;
