@@ -7,6 +7,7 @@ import { mergeIntoRoster } from "../domain/roster";
 import type { Game, Player, TeamProfile } from "../domain/types";
 import type { GameRepository } from "../storage/repository";
 import { teamLabel } from "./SetupScreen";
+import { makeQr, QrCode } from "./QrCode";
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
@@ -28,6 +29,7 @@ export function ShareDialog({ title, payload, onClose }: { title: string; payloa
   const [link, setLink] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
+  const [showQr, setShowQr] = useState(false);
   const forRoster = isRosterPayload(payload);
   const forPlan = isPlanPayload(payload);
   const fileName = `junior-stats-${forPlan ? "lineup" : forRoster ? "roster" : "games"}-${new Date().toISOString().slice(0, 10)}.json`;
@@ -42,6 +44,7 @@ export function ShareDialog({ title, payload, onClose }: { title: string; payloa
   }, [payload]);
 
   const tooLong = link !== null && (link === "" || link.length > MAX_LINK_LENGTH);
+  const qrFits = useMemo(() => !!link && !tooLong && makeQr(link) !== null, [link, tooLong]);
 
   const sendLink = async () => {
     if (!link) return;
@@ -98,9 +101,24 @@ export function ShareDialog({ title, payload, onClose }: { title: string; payloa
       </p>
       {tooLong && <p className="notice">データが大きいため、リンクでは送れません。「ファイルで送る」を使ってください。</p>}
       {message && <p className="notice">{message}</p>}
+      {showQr && link && (
+        <div className="qr-box">
+          {qrFits ? (
+            <>
+              <QrCode text={link} label="共有用のQRコード" />
+              <p className="help">受け取る人は、スマホのカメラでこのQRコードを読み取ってください。ジュニアスタッツが開いて取り込めます。読み取れないときは、画面を明るくして少し離してみてください。</p>
+            </>
+          ) : (
+            <p className="notice">データが大きいため、QRコードにできません。「リンクを送る」か「ファイルで送る」を使ってください。</p>
+          )}
+        </div>
+      )}
       <div className="stack">
         <button className="primary-button" disabled={!link || tooLong} onClick={sendLink}>
           {link === null ? "リンクを作成中…" : "リンクを送る"}
+        </button>
+        <button className="secondary-button" disabled={!link || tooLong} onClick={() => setShowQr((v) => !v)}>
+          {showQr ? "QRコードを閉じる" : "QRコードを表示"}
         </button>
         <button className="secondary-button" disabled={!code} onClick={copyCode}>
           共有コードをコピー

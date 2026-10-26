@@ -1,7 +1,8 @@
 // 試合データ・チームを別の端末に渡す仕組み（リンク／ファイル）と、
 // 受け取った試合を自分の登録チームの成績として取り込むための選手IDの付け替え。
 
-import type { Game, Play, Player, TeamProfile } from "./types";
+import type { Game, PitchKind, Play, Player, TeamProfile } from "./types";
+import { newId } from "./id";
 import { planTeamIds, type LineupPlan } from "./plan";
 
 /** 試合の共有は games、名簿の共有は roster（と、その選手を使うチーム）を入れる */
@@ -9,7 +10,9 @@ export type SharePayload = { kind: "mieru-score-share"; v: 1; teams: TeamProfile
 
 export function makePayload(games: Game[], profiles: TeamProfile[]): SharePayload {
   const ids = new Set(games.flatMap((g) => [g.teams.away.id, g.teams.home.id]));
-  return { kind: "mieru-score-share", v: 1, teams: profiles.filter((t) => ids.has(t.id)), games };
+  // 打順・背番号の履歴や並び順は端末ごとのものなので送らない
+  const teams = profiles.filter((t) => ids.has(t.id)).map(({ lastLineups: _l, latestLineup: _ll, lastNumbers: _n, order: _o, ...t }) => t);
+  return { kind: "mieru-score-share", v: 1, teams, games };
 }
 
 /** 名簿の共有：クラブの名簿と登録チーム（試合は入れない） */
@@ -111,16 +114,56 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
   return new Uint8Array(await new Response(out).arrayBuffer());
 }
 
+// 共有コードを短くするため、プレーのIDは送らず（受け取った側で付け直す）、記録した時刻は前のプレーからの秒数にする。
+// 1球ごとの記録は「種類1文字＋秒数」の文字列にする（例："b12"＝12秒後にボール）。
+const PITCH_CODE: Record<PitchKind, string> = { ball: "b", called_strike: "k", swinging_strike: "s", foul: "f" };
+const PITCH_KIND = Object.fromEntries(Object.entries(PITCH_CODE).map(([k, c]) => [c, k])) as Record<string, PitchKind>;
+type PackedPlay = string | (Record<string, unknown> & { t: number });
+type PackedGame = Omit<Game, "plays"> & { plays: PackedPlay[] };
+
+function packGame(game: Game): PackedGame {
+  let prev = game.createdAt;
+  const plays = game.plays.map((p): PackedPlay => {
+    const t = Math.max(0, Math.round((p.createdAt - prev) / 1000));
+    prev = Math.max(prev, p.createdAt);
+    if (p.type === "pitch") return PITCH_CODE[p.pitch] + t;
+    const { id: _id, createdAt: _c, ...rest } = p;
+    return { ...rest, t };
+  });
+  return { ...game, plays };
+}
+
+function unpackGame(game: PackedGame): Game {
+  let time = game.createdAt;
+  const plays = game.plays.map((p): Play => {
+    if (typeof p === "string") {
+      time += Number(p.slice(1)) * 1000;
+      return { id: newId(), type: "pitch", pitch: PITCH_KIND[p[0]], createdAt: time };
+    }
+    const { t, ...rest } = p;
+    time += t * 1000;
+    return { ...rest, id: newId(), createdAt: time } as Play;
+  });
+  return { ...game, plays };
+}
+
+/** 新しい形式のコードの先頭につける印（base64url には「.」が出てこないので古いコードと区別できる） */
+const PACKED = "2.";
+
 /** データを圧縮して、URLに入れられる文字列にする */
 export async function encodePayload(payload: SharePayload): Promise<string> {
-  const json = new TextEncoder().encode(JSON.stringify(payload));
-  return toBase64Url(await pipe(json, new CompressionStream("deflate-raw")));
+  const packed = { ...payload, games: payload.games.map(packGame) };
+  const json = new TextEncoder().encode(JSON.stringify(packed));
+  return PACKED + toBase64Url(await pipe(json, new CompressionStream("deflate-raw")));
 }
 
 export async function decodePayload(text: string): Promise<SharePayload> {
-  const json = new TextDecoder().decode(await pipe(fromBase64Url(text), new DecompressionStream("deflate-raw")));
+  const isPacked = text.startsWith(PACKED);
+  const body = isPacked ? text.slice(PACKED.length) : text;
+  const json = new TextDecoder().decode(await pipe(fromBase64Url(body), new DecompressionStream("deflate-raw")));
   const parsed = JSON.parse(json) as SharePayload;
   if (parsed?.kind !== "mieru-score-share" || !Array.isArray(parsed.games)) throw new Error("共有データを読み取れませんでした");
+  if (isPacked) parsed.games = (parsed.games as unknown as PackedGame[]).map(unpackGame);
   return parsed;
 }
 

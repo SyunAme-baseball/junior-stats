@@ -2837,3 +2837,16 @@ button.roster-name {
 .plan-actions { display: flex; align-items: center; gap: 6px; flex: none; }
 .plan-save { width: 100%; margin-top: 10px; }
 .confirmed-badge { display: inline-block; margin-left: 10px; padding: 2px 10px; border-radius: 999px; background: #e6f4ea; color: #1f6b3a; font-size: 0.8rem; font-weight: 800; vertical-align: middle; }
+
+.qr-box {
+  margin: 10px 0;
+  text-align: center;
+}
+
+.qr-code {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto 8px;
+  border-radius: 8px;
+}
